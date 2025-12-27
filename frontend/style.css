@@ -1,0 +1,133 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Background */
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #fff;
+}
+
+/* Blur background layer */
+.background {
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(14px);
+    z-index: -1;
+}
+
+/* Main container */
+.container {
+    max-width: 1000px;
+    margin: auto;
+    padding: 60px 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+header p {
+    opacity: 0.8;
+    margin-top: 8px;
+}
+
+/* Search box */
+.search-box {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 40px;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    font-size: 1rem;
+    outline: none;
+}
+
+.search-box button {
+    padding: 16px 28px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, #ff512f, #dd2476);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.search-box button:hover {
+    transform: translateY(-2px);
+}
+
+/* Card */
+.card {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+}
+
+/* Product info */
+.product-info {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.product-info img {
+    width: 220px;
+    height: auto;
+    border-radius: 18px;
+    background: #fff;
+    padding: 10px;
+}
+
+.details h2 {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+}
+
+.details h3 {
+    font-size: 1.6rem;
+    color: #00ff9d;
+}
+
+/* Chart */
+.chart-box {
+    background: rgba(0,0,0,0.25);
+    padding: 20px;
+    border-radius: 18px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .product-info {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .product-info img {
+        width: 180px;
+    }
+
+    .search-box {
+        flex-direction: column;
+    }
+}

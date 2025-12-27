@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PricePilot</title>
+
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🛒 PricePilot</h1>
+    <p class="subtitle">Smart price comparison & buying decisions</p>
+
+    <!-- SEARCH (NO FORM) -->
+    <div class="search-box">
+        <input
+            id="productUrl"
+            type="text"
+            placeholder="Paste product link"
+        >
+        <button id="compareBtn" type="button">Compare</button>
+    </div>
+
+    <!-- RESULT -->
+    <div class="product-box">
+        <img id="liveImage" alt="">
+        <h2 id="liveTitle"></h2>
+        <h3 id="livePrice"></h3>
+        <canvas id="priceChart"></canvas>
+    </div>
+</div>
+
+<script src="./script.js"></script>
+</body>
+</html>
