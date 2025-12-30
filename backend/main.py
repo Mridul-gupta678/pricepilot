@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from amazon_api import fetch_amazon_product
-from database import init_db, save_price, get_price_history
+from .amazon_api import fetch_amazon_product
+from .database import init_db, save_price, get_price_history
 
 app = FastAPI(title="PricePilot API")
 
-# Init DB
+# Initialize DB
 init_db()
 
 app.add_middleware(
