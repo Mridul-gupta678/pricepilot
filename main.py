@@ -1,40 +1,47 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from amazon_api import fetch_amazon_product
+# ✅ Correct imports (VERY IMPORTANT)
+from backend.amazon_api import fetch_amazon_product
 from backend.database import init_db, save_price, get_price_history
 
 app = FastAPI(title="PricePilot API")
 
-# Initialize DB
+# Initialize database
 init_db()
 
-# CORS
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # later restrict in production
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ---------- MODELS ----------
+class ProductURL(BaseModel):
+    url: str
+
+
+# ---------- ROUTES ----------
 @app.get("/")
 def root():
-    return {"status": "PricePilot backend running"}
+    return {"status": "PricePilot backend running 🚀"}
+
 
 @app.post("/compare-advanced")
-def compare_advanced(payload: dict):
-    url = payload.get("url")
-
-    if not url:
-        return {"error": "No URL provided"}
+def compare_advanced(payload: ProductURL):
+    url = payload.url
 
     product = fetch_amazon_product(url)
 
-    # Save price history if available
+    # Save price history if price exists
     if product.get("price"):
         save_price(url, product["title"], product["price"])
 
     return product
+
 
 @app.get("/price-history")
 def price_history(product_url: str):
