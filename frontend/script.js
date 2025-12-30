@@ -1,10 +1,10 @@
-// ================== API BASE (PHASE 1.2 CHANGE) ==================
+// ================== API BASE (PRODUCTION READY) ==================
 
-// 🔁 During local development:
-const API_BASE = "http://127.0.0.1:8000";
+// ✅ LIVE BACKEND (Render)
+const API_BASE = "https://pricepilot-4.onrender.com";
 
-// 🔁 After deployment, this will become:
-// const API_BASE = "https://pricepilot-backend.onrender.com";
+// ❌ LOCAL (use only if backend running locally)
+// const API_BASE = "http://127.0.0.1:8000";
 
 
 // ================== GLOBAL STATE ==================
@@ -47,14 +47,13 @@ async function compareAdvanced() {
     document.getElementById("liveImage").src = "";
 
     try {
-        const response = await fetch(
-            `${API_BASE}/compare-advanced`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url })
-            }
-        );
+        const response = await fetch(`${API_BASE}/compare-advanced`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ url })
+        });
 
         if (!response.ok) {
             throw new Error("Backend error");
@@ -63,9 +62,9 @@ async function compareAdvanced() {
         const data = await response.json();
 
         document.getElementById("liveImage").src = data.image || "";
-        document.getElementById("liveTitle").innerText = data.title || "";
+        document.getElementById("liveTitle").innerText = data.title || "No title found";
         document.getElementById("livePrice").innerText =
-            data.price ? "₹ " + data.price : "";
+            data.price ? "₹ " + data.price : "Price not available";
 
         loadPriceHistory(url);
 
@@ -87,12 +86,18 @@ async function loadPriceHistory(url) {
         if (!response.ok) return;
 
         const history = await response.json();
-        if (!history.length) return;
+        if (!history || history.length === 0) return;
 
-        const labels = history.map(i =>
-            new Date(i.date).toLocaleDateString()
+        // ✅ SAFETY: Chart.js must be loaded
+        if (typeof Chart === "undefined") {
+            console.warn("Chart.js not loaded");
+            return;
+        }
+
+        const labels = history.map(item =>
+            new Date(item.date).toLocaleDateString()
         );
-        const prices = history.map(i => i.price);
+        const prices = history.map(item => item.price);
 
         const canvas = document.getElementById("priceChart");
         if (!canvas) return;
@@ -104,7 +109,7 @@ async function loadPriceHistory(url) {
         priceChart = new Chart(ctx, {
             type: "line",
             data: {
-                labels,
+                labels: labels,
                 datasets: [{
                     label: "Price History (₹)",
                     data: prices,
