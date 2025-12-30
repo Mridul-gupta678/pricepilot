@@ -4,26 +4,29 @@
     <meta charset="UTF-8" />
     <title>PricePilot</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Google Font -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="./style.css" />
-
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="./style.css" />
   </head>
 
   <body>
     <div class="app-wrapper">
       <div class="container">
         <header class="header">
-          <h1>🛒 PricePilot</h1>
+          <div class="header-top">
+            <h1>🛒 PricePilot</h1>
+            <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+              🌙
+            </button>
+          </div>
           <p class="subtitle">Smart price comparison & buying decisions</p>
         </header>
 
@@ -33,14 +36,13 @@
             type="text"
             placeholder="Paste Amazon product link here..."
           />
-          <button id="compareBtn" type="button">Compare Price</button>
+          <button id="compareBtn" type="button">Compare</button>
         </div>
 
         <div class="product-box">
           <div class="product-left">
             <img id="liveImage" alt="Product Image" />
           </div>
-
           <div class="product-right">
             <h2 id="liveTitle">Product title will appear here</h2>
             <h3 id="livePrice"></h3>
@@ -52,7 +54,7 @@
         </div>
 
         <footer class="footer">
-          <p>© 2025 PricePilot • Built with FastAPI & JavaScript</p>
+          <p>© 2025 PricePilot • Built with FastAPI</p>
         </footer>
       </div>
     </div>
