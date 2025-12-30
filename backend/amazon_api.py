@@ -3,7 +3,7 @@ import hmac
 import json
 import datetime
 import requests
-from config import (
+from backend.config import (
     AMAZON_ACCESS_KEY,
     AMAZON_SECRET_KEY,
     AMAZON_ASSOCIATE_TAG,
