@@ -4,61 +4,49 @@
     <meta charset="UTF-8" />
     <title>PricePilot</title>
 
-    <!-- Google Font -->
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
       rel="stylesheet"
     />
 
-    <!-- Chart.js -->
+    <!-- Chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- CSS -->
     <link rel="stylesheet" href="./style.css" />
   </head>
-
   <body>
-    <div class="app-wrapper">
-      <div class="container">
-        <header class="header">
-          <div class="header-top">
-            <h1>🛒 PricePilot</h1>
-            <button id="themeToggle" class="theme-toggle" title="Toggle theme">
-              🌙
-            </button>
-          </div>
-          <p class="subtitle">Smart price comparison & buying decisions</p>
-        </header>
+    <!-- Theme Toggle -->
+    <button id="themeToggle" class="theme-toggle">🌙</button>
 
-        <div class="search-box">
-          <input
-            id="productUrl"
-            type="text"
-            placeholder="Paste Amazon product link here..."
-          />
-          <button id="compareBtn" type="button">Compare</button>
-        </div>
+    <div class="container glass">
+      <h1>🛒 PricePilot</h1>
+      <p class="subtitle">Smart price comparison & buying decisions</p>
 
-        <div class="product-box">
-          <div class="product-left">
-            <img id="liveImage" alt="Product Image" />
-          </div>
-          <div class="product-right">
-            <h2 id="liveTitle">Product title will appear here</h2>
-            <h3 id="livePrice"></h3>
-          </div>
-        </div>
+      <div class="search-box">
+        <input
+          id="productUrl"
+          type="text"
+          placeholder="Paste Amazon / Flipkart product link"
+        />
+        <button id="compareBtn">Compare</button>
+      </div>
 
-        <div class="chart-box">
-          <canvas id="priceChart"></canvas>
-        </div>
+      <div class="product-box">
+        <img id="liveImage" alt="Product Image" />
+        <h2 id="liveTitle"></h2>
+        <h3 id="livePrice"></h3>
+      </div>
 
-        <footer class="footer">
-          <p>© 2025 PricePilot • Built with FastAPI</p>
-        </footer>
+      <div class="chart-box">
+        <canvas id="priceChart"></canvas>
       </div>
     </div>
 
+    <!-- JS -->
     <script src="./script.js"></script>
   </body>
 </html>

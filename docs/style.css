@@ -1,172 +1,127 @@
-/* ================= THEME VARIABLES ================= */
-
 :root {
-  --bg-main: radial-gradient(circle at top, #1f2933, #0f172a);
-  --card-bg: rgba(255, 255, 255, 0.06);
-  --card-light: rgba(255, 255, 255, 0.05);
-  --text-main: #e5e7eb;
-  --text-muted: #9ca3af;
-  --accent: #3b82f6;
-  --price: #22c55e;
+  --bg-dark: #0e1117;
+  --bg-light: #f5f7fb;
+  --glass-dark: rgba(255, 255, 255, 0.08);
+  --glass-light: rgba(255, 255, 255, 0.6);
+  --text-dark: #ffffff;
+  --text-light: #0e1117;
+  --accent: #6ee7b7;
 }
-
-body.light {
-  --bg-main: #f8fafc;
-  --card-bg: #ffffff;
-  --card-light: #f1f5f9;
-  --text-main: #0f172a;
-  --text-muted: #475569;
-  --accent: #2563eb;
-  --price: #16a34a;
-}
-
-/* ================= GLOBAL ================= */
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Inter", sans-serif;
 }
 
 body {
-  font-family: "Inter", sans-serif;
-  background: var(--bg-main);
-  color: var(--text-main);
   min-height: 100vh;
-}
-
-/* ================= LAYOUT ================= */
-
-.app-wrapper {
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: var(--text-dark);
   display: flex;
   justify-content: center;
-  padding: 40px 16px;
+  align-items: center;
+  transition: 0.3s ease;
+}
+
+body.light {
+  background: linear-gradient(135deg, #e0eafc, #cfdef3);
+  color: var(--text-light);
 }
 
 .container {
-  max-width: 900px;
-  width: 100%;
-  background: var(--card-bg);
-  backdrop-filter: blur(20px);
-  border-radius: 18px;
-  padding: 32px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
-}
-
-/* ================= HEADER ================= */
-
-.header {
+  width: 420px;
+  padding: 28px;
+  border-radius: 20px;
   text-align: center;
-  margin-bottom: 30px;
 }
 
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.glass {
+  background: var(--glass-dark);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
 }
 
-.header h1 {
-  font-size: 2.4rem;
-  font-weight: 700;
+body.light .glass {
+  background: var(--glass-light);
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 6px;
 }
 
 .subtitle {
-  margin-top: 6px;
-  font-size: 0.95rem;
-  color: var(--text-muted);
+  opacity: 0.8;
+  margin-bottom: 20px;
 }
-
-.theme-toggle {
-  background: none;
-  border: none;
-  font-size: 1.4rem;
-  cursor: pointer;
-  color: var(--text-main);
-}
-
-/* ================= SEARCH ================= */
 
 .search-box {
   display: flex;
-  gap: 12px;
-  margin-bottom: 30px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .search-box input {
   flex: 1;
-  padding: 14px 16px;
+  padding: 12px;
   border-radius: 12px;
   border: none;
   outline: none;
-  background: var(--card-light);
-  color: var(--text-main);
+  font-size: 0.9rem;
 }
 
 .search-box button {
-  padding: 14px 22px;
+  padding: 12px 18px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, var(--accent), #6366f1);
-  color: #fff;
-  font-weight: 600;
   cursor: pointer;
+  background: var(--accent);
+  font-weight: 600;
+  transition: 0.2s;
 }
 
-/* ================= PRODUCT ================= */
+.search-box button:hover {
+  transform: scale(1.05);
+}
 
 .product-box {
-  display: flex;
-  gap: 20px;
-  background: var(--card-light);
-  padding: 20px;
-  border-radius: 16px;
-  margin-bottom: 30px;
-  align-items: center;
+  margin-top: 10px;
 }
 
-.product-left img {
-  width: 160px;
-  border-radius: 12px;
-  background: #111827;
+.product-box img {
+  max-width: 160px;
+  margin: 12px auto;
+  display: block;
+  border-radius: 14px;
 }
 
-.product-right h2 {
-  font-size: 1.1rem;
+.product-box h2 {
+  font-size: 1rem;
+  margin: 10px 0;
+}
+
+.product-box h3 {
+  color: var(--accent);
   margin-bottom: 10px;
 }
 
-.product-right h3 {
-  font-size: 1.4rem;
-  color: var(--price);
-}
-
-/* ================= CHART ================= */
-
 .chart-box {
-  background: var(--card-light);
-  padding: 20px;
-  border-radius: 16px;
+  margin-top: 20px;
 }
 
-/* ================= FOOTER ================= */
-
-.footer {
-  margin-top: 30px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* ================= RESPONSIVE ================= */
-
-@media (max-width: 700px) {
-  .search-box {
-    flex-direction: column;
-  }
-
-  .product-box {
-    flex-direction: column;
-    text-align: center;
-  }
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  backdrop-filter: blur(10px);
 }
