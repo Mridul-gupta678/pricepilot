@@ -54,3 +54,5 @@ def fallback(reason):
         "image": "",
         "source": f"Amazon blocked ({reason})"
     }
+
+print(response.text[:1000])
