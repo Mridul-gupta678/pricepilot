@@ -55,4 +55,3 @@ def fallback(reason):
         "source": f"Amazon blocked ({reason})"
     }
 
-print(response.text[:1000])
