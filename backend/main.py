@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 
 from .database import init_db, save_price, get_price_history
 
@@ -15,12 +16,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ===================== MODELS =====================
+
 class ProductPayload(BaseModel):
     url: str
-    title: str
-    price: str
-    image: str
-    source: str
+    title: Optional[str] = "Unavailable"
+    price: Optional[str] = "Unavailable"
+    image: Optional[str] = ""
+    source: Optional[str] = "Client Scraper"
+
+# ===================== ROUTES =====================
 
 @app.get("/")
 def root():
@@ -28,10 +33,13 @@ def root():
 
 @app.post("/compare-advanced")
 def compare_advanced(payload: ProductPayload):
-    if payload.price != "Unavailable":
-        save_price(payload.url, payload.title, payload.price)
+    product = payload.dict()
 
-    return payload
+    # Save price only if valid
+    if product["price"] not in ["Unavailable", "", None]:
+        save_price(product["url"], product["title"], product["price"])
+
+    return product
 
 @app.get("/price-history")
 def price_history(product_url: str):
