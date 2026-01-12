@@ -11,7 +11,8 @@ window.addEventListener("keydown", (e) => {
 
 // ================== DOM READY ==================
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("compareBtn")?.addEventListener("click", compareAdvanced);
+  // 🔁 CHANGE: use multi-site comparison
+  document.getElementById("compareBtn")?.addEventListener("click", compareAllSites);
 
   // 🌙 Theme toggle
   const toggleBtn = document.getElementById("themeToggle");
@@ -33,29 +34,25 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// ================== MAIN FUNCTION ==================
-async function compareAdvanced() {
+// ================== MULTI-WEBSITE COMPARISON ==================
+async function compareAllSites() {
   const input = document.getElementById("productUrl");
-  const url = input.value.trim();
+  const query = input.value.trim();
 
-  if (!url) {
-    alert("Please paste a product link");
+  if (!query) {
+    alert("Please enter a product name");
     return;
   }
 
   // UI loading state
-  document.getElementById("liveTitle").innerText = "Fetching product details...";
+  document.getElementById("liveTitle").innerText = "Comparing prices...";
   document.getElementById("livePrice").innerText = "";
   document.getElementById("liveImage").src = "";
 
   try {
-    const response = await fetch(`${API_BASE}/compare-advanced`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ url }),
-    });
+    const response = await fetch(
+      `${API_BASE}/compare-all?query=${encodeURIComponent(query)}`
+    );
 
     if (!response.ok) {
       throw new Error("Backend error");
@@ -63,78 +60,35 @@ async function compareAdvanced() {
 
     const data = await response.json();
 
-    // ✅ Update UI safely
+    // Filter valid prices
+    const validProducts = data.filter(
+      (p) => p.price && p.price !== "Unavailable"
+    );
+
+    if (validProducts.length === 0) {
+      document.getElementById("liveTitle").innerText =
+        "No prices found for this product";
+      return;
+    }
+
+    // Find cheapest product
+    const cheapest = validProducts.reduce((a, b) =>
+      parseInt(a.price) < parseInt(b.price) ? a : b
+    );
+
+    // Update UI
     document.getElementById("liveTitle").innerText =
-      data.title && data.title !== "Unavailable"
-        ? data.title
-        : "Product data not available";
+      `${cheapest.title} (${cheapest.source})`;
 
     document.getElementById("livePrice").innerText =
-      data.price && data.price !== "Unavailable"
-        ? `₹ ${data.price}`
-        : "Price not available";
+      `₹ ${cheapest.price}`;
 
     document.getElementById("liveImage").src =
-      data.image && data.image !== "" ? data.image : "";
-
-    // Load price history if available
-    loadPriceHistory(url);
+      cheapest.image && cheapest.image !== "" ? cheapest.image : "";
 
   } catch (err) {
     console.error(err);
     document.getElementById("liveTitle").innerText =
-      "Unable to fetch product (blocked by website)";
-  }
-}
-
-// ================== PRICE HISTORY ==================
-async function loadPriceHistory(url) {
-  try {
-    const response = await fetch(
-      `${API_BASE}/price-history?product_url=${encodeURIComponent(url)}`
-    );
-
-    if (!response.ok) return;
-
-    const history = await response.json();
-    if (!Array.isArray(history) || history.length === 0) return;
-
-    if (typeof Chart === "undefined") return;
-
-    const labels = history.map((h) =>
-      new Date(h.date).toLocaleDateString()
-    );
-    const prices = history.map((h) => h.price);
-
-    const canvas = document.getElementById("priceChart");
-    if (!canvas) return;
-
-    if (priceChart) priceChart.destroy();
-
-    priceChart = new Chart(canvas.getContext("2d"), {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Price History (₹)",
-            data: prices,
-            borderWidth: 3,
-            tension: 0.3,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: true,
-          },
-        },
-      },
-    });
-
-  } catch (err) {
-    console.warn("Price history not available");
+      "Unable to compare prices (backend issue)";
   }
 }

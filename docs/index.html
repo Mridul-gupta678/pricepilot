@@ -30,15 +30,17 @@
           <p class="subtitle">Smart price comparison & buying decisions</p>
         </header>
 
+        <!-- 🔍 SEARCH -->
         <div class="search-box">
           <input
             id="productUrl"
             type="text"
-            placeholder="Paste Amazon product link here..."
+            placeholder="Enter product name (e.g. iPhone 14)"
           />
           <button id="compareBtn" type="button">Compare</button>
         </div>
 
+        <!-- 📦 PRODUCT RESULT -->
         <div class="product-box">
           <div class="product-left">
             <img id="liveImage" alt="Product Image" />
@@ -49,6 +51,7 @@
           </div>
         </div>
 
+        <!-- 📈 PRICE HISTORY (Optional) -->
         <div class="chart-box">
           <canvas id="priceChart"></canvas>
         </div>
@@ -59,6 +62,7 @@
       </div>
     </div>
 
+    <!-- JS -->
     <script src="./script.js"></script>
   </body>
 </html>
