@@ -50,7 +50,38 @@ ul { list-style: none; }
 button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 
 /* ================= UTILS ================= */
-.hidden { display: none !important; }
+/* Deal Analysis Styles */
+.deal-badge {
+    margin-left: 0.5rem;
+    font-weight: 600;
+}
+.deal-badge.good { background: #22c55e; color: #fff; } /* Green */
+.deal-badge.fair { background: #eab308; color: #fff; } /* Yellow */
+.deal-badge.bad { background: #ef4444; color: #fff; } /* Red */
+
+.savings-block {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.savings-tag {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-weight: 600;
+}
+
+.avg-price-label {
+    color: var(--text-secondary);
+}
+
+.hidden {
+  display: none !important;
+}
 .gradient-text {
   background: var(--gradient);
   -webkit-background-clip: text;
@@ -211,14 +242,36 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   transform: translateY(-1px);
 }
 
+/* Checkbox Styles */
+.options-container {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+}
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+}
+.checkbox-container input {
+    accent-color: var(--primary);
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Supported Stores */
 .supported-stores {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 .supported-stores i { font-size: 1.2rem; }
 .store-text { font-weight: 500; }

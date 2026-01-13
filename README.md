@@ -103,16 +103,51 @@ Hosting	GitHub Pages, Render
 
 🚀 Deployment
 Frontend → GitHub Pages
-
 Backend → Render (Auto-deployed from GitHub)
 
-This setup allows:
+This setup allows independent deployment, easy maintenance, and clean separation of concerns.
 
-Independent deployment
+📦 Deployment Steps
+1) Prepare the deployment package
+- Build production-ready frontend assets (minify CSS/JS if desired)
+- Ensure backend entrypoint: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- Pin dependencies in `requirements.txt` and verify local installs
+- Confirm configuration: API base URL in `script.js` auto-detects localhost vs production
 
-Easy maintenance
+2) Set up the target environment
+- Provision backend service (Render) with Python runtime
+- Configure environment: `PORT` (default 8000), persistent disk for SQLite if needed
+- Enable CORS for the frontend origin (GitHub Pages domain)
+- Install runtime dependencies using `requirements.txt`
 
-Clean separation of concerns
+3) Execute the deployment
+- Connect Render service to this GitHub repo and select auto-deploy
+- Set start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- For frontend, push to `main` with `index.html` at repo root (GitHub Pages)
+- Initialize database by hitting `/compare-advanced?mock_mode=true` once (creates tables if not present)
+
+4) Verify the deployment
+- Run smoke tests:
+  - `GET /health` should return `{"status":"healthy"}`
+  - `POST /compare-advanced?mock_mode=true` with `{"url":"https://amazon.in/demo"}` should return product + deal_analysis
+- Check service logs and CPU/memory usage in Render dashboard
+- Validate frontend → backend integration from browser
+
+5) Finalize the deployment
+- Update DNS or Pages custom domain (optional)
+- Enable monitoring and alerts (Render health checks + uptime monitors)
+- Record deployment details and version in this README
+
+🛑 Rollback Procedures
+- Render: use “Rollback” to previous successful build, or redeploy a known-good commit
+- Frontend: restore previous commit on GitHub Pages (revert merge or force-push)
+- Database: keep regular backups of SQLite file if persistence is enabled
+- If API outage occurs, enable `mock_mode` in UI to keep frontend operational
+
+🏷️ Version Information
+- Backend API: v2.0.0 (FastAPI, advanced deal analysis, mock mode)
+- Frontend: Premium UI with Deal Badges, Savings, chart integration
+- Testing: Unit tests for core processing (`tests/test_processing.py`)
 
 🎓 Learning Outcomes
 This project demonstrates:

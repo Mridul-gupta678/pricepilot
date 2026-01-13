@@ -1,5 +1,7 @@
 // ================== CONFIG ==================
-const API_BASE = "https://pricepilot-4.onrender.com";
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+  ? "http://localhost:8000" 
+  : "https://pricepilot-4.onrender.com";
 
 // ================== STATE ==================
 let priceChart = null;
@@ -15,12 +17,17 @@ const elements = {
   livePrice: document.getElementById("livePrice"),
   liveImage: document.getElementById("liveImage"),
   sourceBadge: document.getElementById("sourceBadge"),
+  dealBadge: document.getElementById("dealBadge"),
+  savingsBlock: document.getElementById("savingsBlock"),
+  savingsPct: document.getElementById("savingsPct"),
+  avgPrice: document.getElementById("avgPrice"),
   buyLink: document.getElementById("buyLink"),
   chartCanvas: document.getElementById("priceChart"),
   noDataMsg: document.getElementById("noDataMessage"),
   themeToggle: document.getElementById("themeToggle"),
   recentGrid: document.getElementById("recentGrid"),
   clearHistory: document.getElementById("clearHistory"),
+  demoMode: document.getElementById("demoMode"),
 };
 
 // ================== INIT ==================
@@ -73,8 +80,11 @@ async function handleSearch() {
   // Determine source for badge (optimistic)
   updateSourceBadge(url);
 
+  const isDemo = elements.demoMode.checked;
+  const endpoint = `${API_BASE}/compare-advanced${isDemo ? "?mock_mode=true" : ""}`;
+
   try {
-    const response = await fetch(`${API_BASE}/compare-advanced`, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
@@ -91,7 +101,12 @@ async function handleSearch() {
     saveToHistory(data, url);
     
     // Fetch History for Chart
-    fetchPriceHistory(url);
+    // Pass the history data directly if available from the advanced endpoint
+    if (data.history) {
+        renderChart(data.history);
+    } else {
+        fetchPriceHistory(url);
+    }
 
     elements.loading.classList.add("hidden");
     elements.resultSection.classList.remove("hidden");
@@ -124,6 +139,31 @@ function renderProductData(data, url) {
   
   if (data.source) {
       elements.sourceBadge.textContent = data.source.replace(" Scraper", "");
+  }
+
+  // Render Deal Analysis
+  if (data.deal_analysis && data.deal_analysis.score > 0) {
+    const analysis = data.deal_analysis;
+    
+    // Badge
+    elements.dealBadge.textContent = analysis.label;
+    elements.dealBadge.className = "badge deal-badge"; // reset
+    if (analysis.score >= 8) elements.dealBadge.classList.add("good");
+    else if (analysis.score >= 5) elements.dealBadge.classList.add("fair");
+    else elements.dealBadge.classList.add("bad");
+    elements.dealBadge.classList.remove("hidden");
+
+    // Savings
+    if (analysis.savings && analysis.savings !== 0) {
+      elements.savingsBlock.classList.remove("hidden");
+      elements.savingsPct.textContent = Math.round(analysis.savings);
+      elements.avgPrice.textContent = analysis.average_price;
+    } else {
+      elements.savingsBlock.classList.add("hidden");
+    }
+  } else {
+    elements.dealBadge.classList.add("hidden");
+    elements.savingsBlock.classList.add("hidden");
   }
 }
 

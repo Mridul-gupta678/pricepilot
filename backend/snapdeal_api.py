@@ -1,21 +1,17 @@
-import requests
+from curl_cffi import requests
 from bs4 import BeautifulSoup
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-IN,en;q=0.9",
-}
 
 def fetch_snapdeal_product(url: str):
     try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
+        # Use curl_cffi to mimic Chrome
+        response = requests.get(
+            url, 
+            impersonate="chrome", 
+            timeout=10
+        )
         
         if response.status_code != 200:
-            return fallback("Blocked by Snapdeal or Invalid URL")
+            return fallback(f"Blocked or Invalid URL (Status: {response.status_code})")
 
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -25,17 +21,20 @@ def fetch_snapdeal_product(url: str):
 
         # Price
         price_tag = soup.find("span", {"class": "payBlkBig"}) or soup.find("span", {"class": "pdp-final-price"})
-        price = (
-            price_tag.get_text(strip=True).replace("Rs.", "").replace(",", "").strip()
-            if price_tag else "Unavailable"
-        )
+        if price_tag:
+            price = price_tag.get_text(strip=True).replace("Rs.", "").replace(",", "").strip()
+        else:
+            # Check for sold out
+            sold_out = soup.find(string=lambda text: "sold out" in text.lower() if text else False)
+            if sold_out:
+                price = "Sold Out"
+            else:
+                price = "Unavailable"
 
         # Image
         img_tag = soup.find("img", {"class": "cloudzoom"})
         image = img_tag["src"] if img_tag and img_tag.has_attr("src") else ""
         
-        # Sometimes images have a 'lazy-src' or similar, but cloudzoom is usually the main one.
-        # Fallback for image
         if not image:
              gallery = soup.select_one("#bx-pager img")
              if gallery and gallery.has_attr("src"):
