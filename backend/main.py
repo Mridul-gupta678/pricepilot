@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from typing import Optional, List
 from urllib.parse import urlparse
 import statistics
+import time
+from concurrent.futures import ThreadPoolExecutor
+from .search_providers import search_amazon, search_flipkart, search_ajio, search_snapdeal, search_croma
 
 # Database
 from .database import init_db, save_price, get_price_history
@@ -44,6 +47,11 @@ class ComparisonResponse(BaseModel):
     product: dict
     deal_analysis: dict
     history: List[dict]
+class SearchPayload(BaseModel):
+    name: str
+class SearchCompareResponse(BaseModel):
+    query: str
+    results: List[dict]
 
 # ===================== LOGIC =====================
 
@@ -78,6 +86,8 @@ def scrape_logic(url: str, use_mock: bool = False):
     return result
 
 # ===================== ROUTES =====================
+SEARCH_CACHE = {}
+CACHE_TTL = 60 * 60 * 24
 
 @app.get("/")
 def root():
@@ -157,3 +167,35 @@ def scrape_product(url: str, mock: bool = False):
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "services": ["api", "database", "scrapers"]}
+@app.post("/search-compare", response_model=SearchCompareResponse)
+def search_compare(payload: SearchPayload):
+    q = payload.name.strip()
+    key = q.lower()
+    now = time.time()
+    cached = SEARCH_CACHE.get(key)
+    if cached and (now - cached["ts"]) < CACHE_TTL:
+        return {"query": q, "results": cached["data"]}
+    def run_all():
+        with ThreadPoolExecutor(max_workers=5) as ex:
+            futures = [
+                ex.submit(search_amazon, q),
+                ex.submit(search_flipkart, q),
+                ex.submit(search_ajio, q),
+                ex.submit(search_snapdeal, q),
+                ex.submit(search_croma, q),
+            ]
+            results = []
+            for f in futures:
+                try:
+                    r = f.result(timeout=5)
+                    if r:
+                        results.append(r)
+                except Exception:
+                    pass
+            return results
+    data = run_all()
+    SEARCH_CACHE[key] = {"ts": now, "data": data}
+    for item in data:
+        if item.get("price") not in [None, "", "Unavailable", "Sold Out"]:
+            save_price(item.get("url", key), item.get("title", q), str(item.get("price")))
+    return {"query": q, "results": data}

@@ -59,6 +59,20 @@
 
         <div class="search-container">
           <div class="input-wrapper">
+            <i class="fa-solid fa-magnifying-glass input-icon"></i>
+            <input
+              id="productQuery"
+              type="text"
+              placeholder="Search products (e.g., iPhone 14, AirPods)"
+              autocomplete="off"
+            />
+            <button id="searchCompareBtn" type="button">
+              <span>Compare</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+          <div id="suggestions" class="suggestions hidden"></div>
+          <div class="input-wrapper">
             <i class="fa-solid fa-link input-icon"></i>
             <input
               id="productUrl"
@@ -84,6 +98,7 @@
             <span class="store-text">Flipkart</span>
             <span class="store-text">Ajio</span>
             <span class="store-text">Snapdeal</span>
+            <span class="store-text">Croma</span>
           </div>
         </div>
       </div>

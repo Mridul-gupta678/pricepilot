@@ -11,6 +11,9 @@ const RECENT_KEY = "pricepilot_recent";
 const elements = {
   input: document.getElementById("productUrl"),
   btn: document.getElementById("compareBtn"),
+  query: document.getElementById("productQuery"),
+  searchBtn: document.getElementById("searchCompareBtn"),
+  suggestions: document.getElementById("suggestions"),
   loading: document.getElementById("loadingState"),
   resultSection: document.getElementById("resultSection"),
   liveTitle: document.getElementById("liveTitle"),
@@ -34,10 +37,16 @@ const elements = {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   loadRecentSearches();
+  initSuggestions();
 
   elements.btn.addEventListener("click", handleSearch);
   elements.input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleSearch();
+  });
+  elements.searchBtn.addEventListener("click", handleSearchCompare);
+  elements.query.addEventListener("input", updateSuggestions);
+  elements.query.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSearchCompare();
   });
   
   elements.clearHistory.addEventListener("click", () => {
@@ -65,7 +74,7 @@ function initTheme() {
   });
 }
 
-// ================== SEARCH LOGIC ==================
+// ================== SEARCH LOGIC (URL) ==================
 async function handleSearch() {
   const url = elements.input.value.trim();
   if (!url) {
@@ -121,6 +130,137 @@ async function handleSearch() {
   }
 }
 
+// ================== SEARCH BY NAME ==================
+const popularProducts = [
+  "iPhone 14", "AirPods Pro", "Samsung Galaxy S23", "OnePlus 11R",
+  "Sony WH-1000XM5", "Boat Airdopes 141", "Dell Inspiron 15",
+  "HP Victus 16", "Nike Running Shoes", "Casio G-Shock"
+];
+
+function initSuggestions() {
+  elements.suggestions.classList.add("hidden");
+}
+
+function updateSuggestions() {
+  const q = elements.query.value.trim();
+  if (!q) { elements.suggestions.classList.add("hidden"); return; }
+  const recents = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").map(r => r.title);
+  const pool = [...popularProducts, ...recents];
+  const matches = pool
+    .filter(p => similarity(p, q) >= 0.5 || p.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 6);
+  renderSuggestions(matches);
+}
+
+function renderSuggestions(list) {
+  if (list.length === 0) { elements.suggestions.classList.add("hidden"); return; }
+  elements.suggestions.innerHTML = list.map(item => `<div class="suggestion-item">${item}</div>`).join("");
+  elements.suggestions.classList.remove("hidden");
+  Array.from(elements.suggestions.children).forEach((el) => {
+    el.addEventListener("click", () => { elements.query.value = el.textContent; elements.suggestions.classList.add("hidden"); handleSearchCompare(); });
+  });
+}
+
+function similarity(a, b) {
+  const ed = editDistance(a.toLowerCase(), b.toLowerCase());
+  const maxLen = Math.max(a.length, b.length);
+  return maxLen ? 1 - (ed / maxLen) : 0;
+}
+
+function editDistance(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+async function handleSearchCompare() {
+  const name = elements.query.value.trim();
+  if (!name) { showToast("Please enter a product name", "error"); return; }
+  elements.loading.classList.remove("hidden");
+  try {
+    const res = await fetch(`${API_BASE}/search-compare`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name })
+    });
+    if (!res.ok) throw new Error("Search failed");
+    const json = await res.json();
+    renderComparison(json.results);
+    elements.loading.classList.add("hidden");
+    showToast(`Compared across ${json.results.length} sources`);
+  } catch (e) {
+    console.error(e);
+    elements.loading.classList.add("hidden");
+    showToast("Error during comparison", "error");
+  }
+}
+
+function renderComparison(items) {
+  const containerId = "compareTable";
+  let container = document.getElementById(containerId);
+  if (!container) {
+    container = document.createElement("section");
+    container.id = containerId;
+    container.className = "compare-section";
+    container.innerHTML = `
+      <div class="section-header">
+        <h3><i class="fa-solid fa-table-columns"></i> Comparison</h3>
+        <select id="sortSelect" class="select">
+          <option value="price">Sort: Price</option>
+          <option value="rating">Sort: Rating</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Store</th><th>Title</th><th>Price (₹)</th><th>Rating</th><th>Availability</th><th>Seller</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="compareBody"></tbody>
+        </table>
+      </div>
+    `;
+    document.querySelector("main.container").prepend(container);
+  }
+  const body = document.getElementById("compareBody");
+  const sortSelect = document.getElementById("sortSelect");
+  const parsePrice = (p) => {
+    if (!p || p === "Unavailable" || p === "Sold Out") return Infinity;
+    return parseFloat(String(p).replace(/[^\d.]/g, "")) || Infinity;
+  };
+  const bestIdx = items.reduce((best, cur, i, arr) => parsePrice(cur.price) < parsePrice(arr[best].price) ? i : best, 0);
+  sortSelect.onchange = () => {
+    const crit = sortSelect.value;
+    const sorted = [...items].sort((a,b) => crit === 'rating' ? (Number(b.rating||0)-Number(a.rating||0)) : (parsePrice(a.price) - parsePrice(b.price)));
+    drawRows(sorted);
+  };
+  function drawRows(list) {
+    body.innerHTML = list.map((it, idx) => `
+      <tr class="${idx===bestIdx ? 'best' : ''}">
+        <td>${it.source||'-'}</td>
+        <td>${it.title||'-'}</td>
+        <td>${it.price||'-'}</td>
+        <td>${it.rating||'-'}</td>
+        <td>${it.availability||'-'}</td>
+        <td>${it.seller||'-'}</td>
+        <td>${it.url ? `<a class='btn-buy' target='_blank' href='${it.url}'>Buy Now</a>` : ''}</td>
+      </tr>
+    `).join("");
+  }
+  drawRows(items);
+}
 function updateSourceBadge(url) {
   let source = "Unknown";
   if (url.includes("amazon")) source = "Amazon";
