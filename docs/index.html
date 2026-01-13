@@ -2,12 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>PricePilot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PricePilot - Smart Price Tracking</title>
 
     <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+    />
+
+    <!-- FontAwesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
     <!-- Chart.js -->
@@ -18,46 +27,154 @@
   </head>
 
   <body>
-    <div class="app-wrapper">
-      <div class="container">
-        <header class="header">
-          <div class="header-top">
-            <h1>🛒 PricePilot</h1>
-            <button id="themeToggle" class="theme-toggle" title="Toggle theme">
-              🌙
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="logo">
+          <i class="fa-solid fa-plane-departure"></i> PricePilot
+        </div>
+        <div class="nav-links">
+          <a href="#" class="active">Home</a>
+          <a href="#features">Features</a>
+          <button id="themeToggle" class="theme-btn" title="Toggle theme">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Track Prices. <span class="gradient-text">Save Money.</span>
+        </h1>
+        <p class="hero-subtitle">
+          The ultimate price tracker for Amazon, Flipkart, Ajio, and Snapdeal.
+          Paste a link and let us do the rest.
+        </p>
+
+        <div class="search-container">
+          <div class="input-wrapper">
+            <i class="fa-solid fa-link input-icon"></i>
+            <input
+              id="productUrl"
+              type="text"
+              placeholder="Paste product link (Amazon, Flipkart, Ajio...)"
+              autocomplete="off"
+            />
+            <button id="compareBtn" type="button">
+              <span>Track Price</span>
+              <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
-          <p class="subtitle">Smart price comparison & buying decisions</p>
-        </header>
-
-        <div class="search-box">
-          <input
-            id="productUrl"
-            type="text"
-            placeholder="Paste Amazon product link here..."
-          />
-          <button id="compareBtn" type="button">Compare</button>
-        </div>
-
-        <div class="product-box">
-          <div class="product-left">
-            <img id="liveImage" alt="Product Image" />
-          </div>
-          <div class="product-right">
-            <h2 id="liveTitle">Product title will appear here</h2>
-            <h3 id="livePrice"></h3>
+          <div class="supported-stores">
+            <span>Supported:</span>
+            <i class="fa-brands fa-amazon" title="Amazon"></i>
+            <span class="store-text">Flipkart</span>
+            <span class="store-text">Ajio</span>
+            <span class="store-text">Snapdeal</span>
           </div>
         </div>
-
-        <div class="chart-box">
-          <canvas id="priceChart"></canvas>
-        </div>
-
-        <footer class="footer">
-          <p>© 2025 PricePilot • Built with FastAPI</p>
-        </footer>
       </div>
-    </div>
+    </section>
+
+    <!-- Main Content Area (Hidden initially) -->
+    <main class="container">
+      
+      <!-- Loading State -->
+      <div id="loadingState" class="hidden">
+        <div class="loader"></div>
+        <p>Analyzing product data...</p>
+      </div>
+
+      <!-- Result Section -->
+      <div id="resultSection" class="result-grid hidden">
+        
+        <!-- Product Card -->
+        <div class="card product-card">
+          <div class="product-header">
+            <span class="badge" id="sourceBadge">Amazon</span>
+            <button class="icon-btn" title="Save to Watchlist"><i class="fa-regular fa-heart"></i></button>
+          </div>
+          <div class="product-body">
+            <div class="img-wrapper">
+              <img id="liveImage" src="" alt="Product" />
+            </div>
+            <div class="product-info">
+              <h2 id="liveTitle">Product Title</h2>
+              <div class="price-block">
+                <span class="currency">₹</span>
+                <span id="livePrice" class="amount">0</span>
+              </div>
+              <a href="#" id="buyLink" target="_blank" class="btn-buy">
+                Buy Now <i class="fa-solid fa-external-link-alt"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart Card -->
+        <div class="card chart-card">
+          <h3>Price History</h3>
+          <div class="chart-wrapper">
+            <canvas id="priceChart"></canvas>
+            <div id="noDataMessage" class="no-data hidden">
+              <i class="fa-solid fa-chart-line"></i>
+              <p>No history data available yet. We started tracking this item!</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent Searches -->
+      <section id="recentSection" class="recent-section">
+        <div class="section-header">
+          <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Searches</h3>
+          <button id="clearHistory" class="text-btn">Clear</button>
+        </div>
+        <div id="recentGrid" class="recent-grid">
+          <!-- Recent items will be injected here -->
+        </div>
+      </section>
+
+      <!-- Features Grid -->
+      <section id="features" class="features-section">
+        <h2 class="section-title">Why use PricePilot?</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="icon-box"><i class="fa-solid fa-bolt"></i></div>
+            <h3>Real-time Scraping</h3>
+            <p>Get the latest live price directly from the store page instantly.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon-box"><i class="fa-solid fa-chart-area"></i></div>
+            <h3>History Tracking</h3>
+            <p>We save price points over time to show you the trend.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon-box"><i class="fa-solid fa-bell"></i></div>
+            <h3>Multi-Store Support</h3>
+            <p>Works seamlessly with top Indian e-commerce platforms.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <p>&copy; 2025 PricePilot. Built for smart shoppers.</p>
+        <div class="social-links">
+          <a href="#"><i class="fa-brands fa-github"></i></a>
+          <a href="#"><i class="fa-brands fa-twitter"></i></a>
+        </div>
+      </div>
+    </footer>
 
     <script src="./script.js"></script>
   </body>

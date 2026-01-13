@@ -1,140 +1,295 @@
-// ================== API BASE ==================
+// ================== CONFIG ==================
 const API_BASE = "https://pricepilot-4.onrender.com";
 
-// ================== GLOBAL STATE ==================
+// ================== STATE ==================
 let priceChart = null;
+const RECENT_KEY = "pricepilot_recent";
 
-// ================== PREVENT ENTER KEY RELOAD ==================
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") e.preventDefault();
-});
+// ================== DOM ELEMENTS ==================
+const elements = {
+  input: document.getElementById("productUrl"),
+  btn: document.getElementById("compareBtn"),
+  loading: document.getElementById("loadingState"),
+  resultSection: document.getElementById("resultSection"),
+  liveTitle: document.getElementById("liveTitle"),
+  livePrice: document.getElementById("livePrice"),
+  liveImage: document.getElementById("liveImage"),
+  sourceBadge: document.getElementById("sourceBadge"),
+  buyLink: document.getElementById("buyLink"),
+  chartCanvas: document.getElementById("priceChart"),
+  noDataMsg: document.getElementById("noDataMessage"),
+  themeToggle: document.getElementById("themeToggle"),
+  recentGrid: document.getElementById("recentGrid"),
+  clearHistory: document.getElementById("clearHistory"),
+};
 
-// ================== DOM READY ==================
+// ================== INIT ==================
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("compareBtn")?.addEventListener("click", compareAdvanced);
+  initTheme();
+  loadRecentSearches();
 
-  // 🌙 Theme toggle
-  const toggleBtn = document.getElementById("themeToggle");
-  if (!toggleBtn) return;
-
-  const savedTheme = localStorage.getItem("theme");
-  if (savedTheme === "light") {
-    document.body.classList.add("light");
-    toggleBtn.innerText = "☀️";
-  } else {
-    toggleBtn.innerText = "🌙";
-  }
-
-  toggleBtn.addEventListener("click", () => {
-    document.body.classList.toggle("light");
-    const isLight = document.body.classList.contains("light");
-    toggleBtn.innerText = isLight ? "☀️" : "🌙";
-    localStorage.setItem("theme", isLight ? "light" : "dark");
+  elements.btn.addEventListener("click", handleSearch);
+  elements.input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSearch();
+  });
+  
+  elements.clearHistory.addEventListener("click", () => {
+    localStorage.removeItem(RECENT_KEY);
+    loadRecentSearches();
+    showToast("History cleared", "success");
   });
 });
 
-// ================== MAIN FUNCTION ==================
-async function compareAdvanced() {
-  const input = document.getElementById("productUrl");
-  const url = input.value.trim();
+// ================== THEME LOGIC ==================
+function initTheme() {
+  const savedTheme = localStorage.getItem("theme");
+  const isLight = savedTheme === "light";
+  
+  if (isLight) {
+    document.body.classList.add("light");
+    elements.themeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
+  }
 
+  elements.themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("light");
+    const isNowLight = document.body.classList.contains("light");
+    elements.themeToggle.innerHTML = isNowLight ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    localStorage.setItem("theme", isNowLight ? "light" : "dark");
+  });
+}
+
+// ================== SEARCH LOGIC ==================
+async function handleSearch() {
+  const url = elements.input.value.trim();
   if (!url) {
-    alert("Please paste a product link");
+    showToast("Please enter a valid product URL", "error");
     return;
   }
 
-  // UI loading state
-  document.getElementById("liveTitle").innerText = "Fetching product details...";
-  document.getElementById("livePrice").innerText = "";
-  document.getElementById("liveImage").src = "";
+  // Reset UI
+  elements.loading.classList.remove("hidden");
+  elements.resultSection.classList.add("hidden");
+  
+  // Determine source for badge (optimistic)
+  updateSourceBadge(url);
 
   try {
     const response = await fetch(`${API_BASE}/compare-advanced`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
 
-    if (!response.ok) {
-      throw new Error("Backend error");
-    }
+    if (!response.ok) throw new Error("Failed to fetch data");
 
     const data = await response.json();
+    
+    // Update UI with data
+    renderProductData(data, url);
+    
+    // Save to history
+    saveToHistory(data, url);
+    
+    // Fetch History for Chart
+    fetchPriceHistory(url);
 
-    // ✅ Update UI safely
-    document.getElementById("liveTitle").innerText =
-      data.title && data.title !== "Unavailable"
-        ? data.title
-        : "Product data not available";
+    elements.loading.classList.add("hidden");
+    elements.resultSection.classList.remove("hidden");
+    
+    // Scroll to results
+    elements.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
-    document.getElementById("livePrice").innerText =
-      data.price && data.price !== "Unavailable"
-        ? `₹ ${data.price}`
-        : "Price not available";
-
-    document.getElementById("liveImage").src =
-      data.image && data.image !== "" ? data.image : "";
-
-    // Load price history if available
-    loadPriceHistory(url);
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById("liveTitle").innerText =
-      "Unable to fetch product (blocked by website)";
+  } catch (error) {
+    console.error(error);
+    elements.loading.classList.add("hidden");
+    showToast("Error fetching product data. Please try again.", "error");
   }
 }
 
-// ================== PRICE HISTORY ==================
-async function loadPriceHistory(url) {
-  try {
-    const response = await fetch(
-      `${API_BASE}/price-history?product_url=${encodeURIComponent(url)}`
-    );
+function updateSourceBadge(url) {
+  let source = "Unknown";
+  if (url.includes("amazon")) source = "Amazon";
+  else if (url.includes("flipkart")) source = "Flipkart";
+  else if (url.includes("ajio")) source = "Ajio";
+  else if (url.includes("snapdeal")) source = "Snapdeal";
+  
+  elements.sourceBadge.textContent = source;
+}
 
-    if (!response.ok) return;
-
-    const history = await response.json();
-    if (!Array.isArray(history) || history.length === 0) return;
-
-    if (typeof Chart === "undefined") return;
-
-    const labels = history.map((h) =>
-      new Date(h.date).toLocaleDateString()
-    );
-    const prices = history.map((h) => h.price);
-
-    const canvas = document.getElementById("priceChart");
-    if (!canvas) return;
-
-    if (priceChart) priceChart.destroy();
-
-    priceChart = new Chart(canvas.getContext("2d"), {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Price History (₹)",
-            data: prices,
-            borderWidth: 3,
-            tension: 0.3,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: true,
-          },
-        },
-      },
-    });
-
-  } catch (err) {
-    console.warn("Price history not available");
+function renderProductData(data, url) {
+  elements.liveTitle.textContent = data.title || "Product Title Unavailable";
+  elements.livePrice.textContent = data.price || "Unavailable";
+  elements.liveImage.src = data.image || "https://placehold.co/400x400?text=No+Image";
+  elements.buyLink.href = url;
+  
+  if (data.source) {
+      elements.sourceBadge.textContent = data.source.replace(" Scraper", "");
   }
+}
+
+// ================== HISTORY & RECENT ==================
+function saveToHistory(data, url) {
+  if (!data.title || data.title === "Unavailable") return;
+  
+  let history = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+  
+  // Remove duplicate if exists
+  history = history.filter(item => item.url !== url);
+  
+  // Add new item to start
+  history.unshift({
+    title: data.title,
+    price: data.price,
+    image: data.image,
+    url: url,
+    date: new Date().toISOString()
+  });
+  
+  // Limit to 4 items
+  if (history.length > 4) history.pop();
+  
+  localStorage.setItem(RECENT_KEY, JSON.stringify(history));
+  loadRecentSearches();
+}
+
+function loadRecentSearches() {
+  const history = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+  elements.recentGrid.innerHTML = "";
+  
+  if (history.length === 0) {
+    elements.recentGrid.innerHTML = '<p style="color:var(--text-secondary); grid-column: 1/-1;">No recent searches.</p>';
+    return;
+  }
+
+  history.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "recent-item";
+    div.innerHTML = `
+      <img src="${item.image || 'https://placehold.co/100'}" class="recent-img" alt="Product">
+      <div class="recent-info">
+        <div class="recent-title" title="${item.title}">${item.title}</div>
+        <div class="recent-price">₹ ${item.price}</div>
+      </div>
+    `;
+    div.addEventListener("click", () => {
+      elements.input.value = item.url;
+      handleSearch();
+    });
+    elements.recentGrid.appendChild(div);
+  });
+}
+
+// ================== CHART LOGIC ==================
+async function fetchPriceHistory(url) {
+  try {
+    const res = await fetch(`${API_BASE}/price-history?product_url=${encodeURIComponent(url)}`);
+    if (!res.ok) return;
+    
+    const history = await res.json();
+    renderChart(history);
+  } catch (e) {
+    console.error("Chart error", e);
+  }
+}
+
+function renderChart(historyData) {
+  // Destroy existing chart
+  if (priceChart) {
+    priceChart.destroy();
+    priceChart = null;
+  }
+
+  if (!historyData || historyData.length === 0) {
+    elements.noDataMsg.classList.remove("hidden");
+    elements.chartCanvas.classList.add("hidden");
+    return;
+  }
+
+  elements.noDataMsg.classList.add("hidden");
+  elements.chartCanvas.classList.remove("hidden");
+
+  const ctx = elements.chartCanvas.getContext("2d");
+  
+  // Create Gradient
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+  gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // Brand color high opacity
+  gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)'); // Fade out
+
+  // Format Data
+  // Assuming historyData is [{price: 100, date: "2023-01-01"}, ...]
+  // If the backend returns simplified list, adjust accordingly. 
+  // Based on previous code, it seemed to return objects with 'price' and 'date' (implied from DB schema)
+  
+  const labels = historyData.map(d => new Date(d.date).toLocaleDateString());
+  const prices = historyData.map(d => parseFloat(d.price.replace(/,/g, '')));
+
+  priceChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Price History (₹)",
+          data: prices,
+          borderColor: "#3b82f6",
+          backgroundColor: gradient,
+          borderWidth: 3,
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "#3b82f6",
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true,
+          tension: 0.4, // Smooth curve
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#f8fafc',
+          bodyColor: '#f8fafc',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            label: (context) => `₹ ${context.parsed.y}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false, drawBorder: false },
+          ticks: { color: '#94a3b8' }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          ticks: { color: '#94a3b8', callback: (val) => '₹' + val }
+        }
+      }
+    },
+  });
+}
+
+// ================== UTILS ==================
+function showToast(message, type = "success") {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
+    <span>${message}</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.style.animation = "slideIn 0.3s reverse forwards";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
