@@ -3,12 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
+# Database
 from .database import init_db, save_price, get_price_history
 from .amazon_api import fetch_amazon_product
 from .flipkart_api import fetch_flipkart_product
 from .ajio_api import fetch_ajio_product
 from .snapdeal_api import fetch_snapdeal_product
 from urllib.parse import urlparse
+
+# Scrapers
+# Note: croma_api is available but not integrated into the main logic yet
+# from .croma_api import fetch_croma_product 
+
+# ===================== APP SETUP =====================
 
 app = FastAPI(title="PricePilot API")
 
@@ -58,6 +65,8 @@ def scrape_logic(url: str):
 def root():
     return {"status": "PricePilot backend running"}
 
+# ---------- EXISTING ADVANCED COMPARISON ----------
+
 @app.post("/compare-advanced")
 def compare_advanced(payload: ProductPayload):
     product = payload.dict()
@@ -73,6 +82,8 @@ def compare_advanced(payload: ProductPayload):
 
     return product
 
+# ---------- PRICE HISTORY ----------
+
 @app.get("/price-history")
 def price_history(product_url: str):
     return get_price_history(product_url)
@@ -86,4 +97,3 @@ def scrape_product(url: str):
         save_price(url, result["title"], result["price"])
         
     return result
-

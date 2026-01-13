@@ -84,7 +84,6 @@
 
     <!-- Main Content Area (Hidden initially) -->
     <main class="container">
-      
       <!-- Loading State -->
       <div id="loadingState" class="hidden">
         <div class="loader"></div>
@@ -93,12 +92,13 @@
 
       <!-- Result Section -->
       <div id="resultSection" class="result-grid hidden">
-        
         <!-- Product Card -->
         <div class="card product-card">
           <div class="product-header">
             <span class="badge" id="sourceBadge">Amazon</span>
-            <button class="icon-btn" title="Save to Watchlist"><i class="fa-regular fa-heart"></i></button>
+            <button class="icon-btn" title="Save to Watchlist">
+              <i class="fa-regular fa-heart"></i>
+            </button>
           </div>
           <div class="product-body">
             <div class="img-wrapper">
@@ -124,11 +124,12 @@
             <canvas id="priceChart"></canvas>
             <div id="noDataMessage" class="no-data hidden">
               <i class="fa-solid fa-chart-line"></i>
-              <p>No history data available yet. We started tracking this item!</p>
+              <p>
+                No history data available yet. We started tracking this item!
+              </p>
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- Recent Searches -->
@@ -149,7 +150,9 @@
           <div class="feature-card">
             <div class="icon-box"><i class="fa-solid fa-bolt"></i></div>
             <h3>Real-time Scraping</h3>
-            <p>Get the latest live price directly from the store page instantly.</p>
+            <p>
+              Get the latest live price directly from the store page instantly.
+            </p>
           </div>
           <div class="feature-card">
             <div class="icon-box"><i class="fa-solid fa-chart-area"></i></div>
@@ -163,7 +166,6 @@
           </div>
         </div>
       </section>
-
     </main>
 
     <footer class="footer">
@@ -176,6 +178,7 @@
       </div>
     </footer>
 
+    <!-- JS -->
     <script src="./script.js"></script>
   </body>
 </html>
