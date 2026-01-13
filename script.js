@@ -9,10 +9,12 @@ const RECENT_KEY = "pricepilot_recent";
 
 // ================== DOM ELEMENTS ==================
 const elements = {
-  input: document.getElementById("productUrl"),
-  btn: document.getElementById("compareBtn"),
-  query: document.getElementById("productQuery"),
-  searchBtn: document.getElementById("searchCompareBtn"),
+  unified: document.getElementById("unifiedSearch"),
+  goBtn: document.getElementById("searchGoBtn"),
+  modeContainer: document.getElementById("searchMode"),
+  modeButtons: () => Array.from(document.querySelectorAll("#searchMode .seg-btn")),
+  modeBadge: document.getElementById("modeBadge"),
+  inputIcon: document.getElementById("inputIcon"),
   suggestions: document.getElementById("suggestions"),
   loading: document.getElementById("loadingState"),
   resultSection: document.getElementById("resultSection"),
@@ -38,17 +40,15 @@ document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   loadRecentSearches();
   initSuggestions();
-
-  elements.btn.addEventListener("click", handleSearch);
-  elements.input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleSearch();
+  elements.goBtn.addEventListener("click", unifiedSearchGo);
+  elements.unified.addEventListener("input", updateSuggestions);
+  elements.unified.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") unifiedSearchGo();
   });
-  elements.searchBtn.addEventListener("click", handleSearchCompare);
-  elements.query.addEventListener("input", updateSuggestions);
-  elements.query.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleSearchCompare();
+  elements.modeButtons().forEach(btn => {
+    btn.addEventListener("click", () => setMode(btn.dataset.mode));
   });
-  
+  setMode("product");
   elements.clearHistory.addEventListener("click", () => {
     localStorage.removeItem(RECENT_KEY);
     loadRecentSearches();
@@ -76,7 +76,7 @@ function initTheme() {
 
 // ================== SEARCH LOGIC (URL) ==================
 async function handleSearch() {
-  const url = elements.input.value.trim();
+  const url = elements.unified.value.trim();
   if (!url) {
     showToast("Please enter a valid product URL", "error");
     return;
@@ -142,7 +142,7 @@ function initSuggestions() {
 }
 
 function updateSuggestions() {
-  const q = elements.query.value.trim();
+  const q = elements.unified.value.trim();
   if (!q) { elements.suggestions.classList.add("hidden"); return; }
   const recents = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").map(r => r.title);
   const pool = [...popularProducts, ...recents];
@@ -157,7 +157,7 @@ function renderSuggestions(list) {
   elements.suggestions.innerHTML = list.map(item => `<div class="suggestion-item">${item}</div>`).join("");
   elements.suggestions.classList.remove("hidden");
   Array.from(elements.suggestions.children).forEach((el) => {
-    el.addEventListener("click", () => { elements.query.value = el.textContent; elements.suggestions.classList.add("hidden"); handleSearchCompare(); });
+    el.addEventListener("click", () => { elements.unified.value = el.textContent; elements.suggestions.classList.add("hidden"); handleSearchCompare(); });
   });
 }
 
@@ -185,7 +185,7 @@ function editDistance(a, b) {
 }
 
 async function handleSearchCompare() {
-  const name = elements.query.value.trim();
+  const name = elements.unified.value.trim();
   if (!name) { showToast("Please enter a product name", "error"); return; }
   elements.loading.classList.remove("hidden");
   try {
@@ -260,6 +260,32 @@ function renderComparison(items) {
     `).join("");
   }
   drawRows(items);
+}
+function currentMode() {
+  const active = elements.modeButtons().find(b => b.classList.contains("active"));
+  return active ? active.dataset.mode : "product";
+}
+function setMode(mode) {
+  elements.modeButtons().forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+  elements.modeBadge.textContent = mode === "product" ? "Product" : "Link";
+  elements.inputIcon.className = `fa-solid ${mode === "product" ? "fa-magnifying-glass" : "fa-link"} input-icon`;
+  elements.suggestions.classList.toggle("hidden", mode !== "product");
+  if (mode === "product") {
+    elements.unified.placeholder = "Search products (e.g., iPhone 14, AirPods)";
+  } else {
+    elements.unified.placeholder = "Paste product link (Amazon, Flipkart, Ajio...)";
+  }
+}
+function unifiedSearchGo() {
+  const val = elements.unified.value.trim();
+  if (!val) { showToast("Please enter a query", "error"); return; }
+  const looksLink = /^https?:\/\//i.test(val);
+  const mode = currentMode();
+  if (mode === "product" && !looksLink) {
+    handleSearchCompare();
+  } else {
+    handleSearch();
+  }
 }
 function updateSourceBadge(url) {
   let source = "Unknown";
@@ -352,7 +378,8 @@ function loadRecentSearches() {
       </div>
     `;
     div.addEventListener("click", () => {
-      elements.input.value = item.url;
+      setMode("link");
+      elements.unified.value = item.url;
       handleSearch();
     });
     elements.recentGrid.appendChild(div);

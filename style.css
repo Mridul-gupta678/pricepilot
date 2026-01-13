@@ -191,6 +191,29 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   margin: 0 auto;
 }
 
+.mode-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.segmented {
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.segmented .seg-btn {
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.segmented .seg-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .suggestions {
   margin: 0.5rem 0 1rem;
   background: var(--bg-secondary);

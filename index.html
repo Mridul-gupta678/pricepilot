@@ -58,33 +58,32 @@
         </p>
 
         <div class="search-container">
+          <div class="mode-row">
+            <div class="segmented" id="searchMode">
+              <button class="seg-btn active" data-mode="product">
+                Product
+              </button>
+              <button class="seg-btn" data-mode="link">Link</button>
+            </div>
+            <span id="modeBadge" class="badge">Product</span>
+          </div>
           <div class="input-wrapper">
-            <i class="fa-solid fa-magnifying-glass input-icon"></i>
+            <i
+              id="inputIcon"
+              class="fa-solid fa-magnifying-glass input-icon"
+            ></i>
             <input
-              id="productQuery"
+              id="unifiedSearch"
               type="text"
               placeholder="Search products (e.g., iPhone 14, AirPods)"
               autocomplete="off"
             />
-            <button id="searchCompareBtn" type="button">
-              <span>Compare</span>
+            <button id="searchGoBtn" type="button">
+              <span>Go</span>
               <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
           <div id="suggestions" class="suggestions hidden"></div>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-link input-icon"></i>
-            <input
-              id="productUrl"
-              type="text"
-              placeholder="Paste product link (Amazon, Flipkart, Ajio...)"
-              autocomplete="off"
-            />
-            <button id="compareBtn" type="button">
-              <span>Track Price</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
           <div class="options-container">
             <label class="checkbox-container">
               <input type="checkbox" id="demoMode" />
