@@ -168,6 +168,10 @@ def search_flipkart(query: str) -> Dict:
         soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one("a._1fQZEK") or soup.select_one("a.s1Q9rs")
         if not item:
+            hhtml = _headless_html(url, timeout_ms=8000)
+            if hhtml:
+                soup = BeautifulSoup(hhtml, "html.parser")
+                item = soup.select_one("a._1fQZEK") or soup.select_one("a.s1Q9rs")
             return _result("Flipkart", error="No results")
         title = item.select_one("div._4rR01T") or item
         price_el = soup.select_one("div._30jeq3._1_WHN1") or soup.select_one("div._30jeq3")
@@ -207,6 +211,10 @@ def search_ajio(query: str) -> Dict:
         soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one("div.item") or soup.select_one(".product-card") or soup.select_one("li")
         if not item:
+            hhtml = _headless_html(url, timeout_ms=8000)
+            if hhtml:
+                soup = BeautifulSoup(hhtml, "html.parser")
+                item = soup.select_one("div.item") or soup.select_one(".product-card") or soup.select_one("li")
             return _result("Ajio", error="No results or login required")
         title_el = item.select_one(".name") or item.select_one(".brand") or item.find("span")
         price_el = item.select_one(".price") or item.select_one(".final-price") or item.find("span")
@@ -245,6 +253,10 @@ def search_snapdeal(query: str) -> Dict:
         soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one(".product-tuple-listing")
         if not item:
+            hhtml = _headless_html(url, timeout_ms=8000)
+            if hhtml:
+                soup = BeautifulSoup(hhtml, "html.parser")
+                item = soup.select_one(".product-tuple-listing")
             return _result("Snapdeal", error="No results")
         title_el = item.select_one(".product-title") or item.select_one(".product-title-name")
         price_el = item.select_one(".product-price") or item.select_one(".lfloat .product-price")
