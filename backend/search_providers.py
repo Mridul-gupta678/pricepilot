@@ -136,8 +136,16 @@ def search_amazon(query: str) -> Dict:
 def search_flipkart(query: str) -> Dict:
     try:
         url = f"https://www.flipkart.com/search?q={requests.utils.quote(query)}"
-        r = requests.get(url, headers={**HEADERS, "Referer": "https://www.flipkart.com/"}, timeout=6)
-        soup = BeautifulSoup(r.text, "html.parser")
+        html = ""
+        for _ in range(2):
+            r = requests.get(url, headers={**HEADERS, "Referer": "https://www.flipkart.com/"}, timeout=6)
+            html = r.text
+            if html:
+                break
+        j = _try_jsonld(html, "https://www.flipkart.com", "Flipkart")
+        if j:
+            return j
+        soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one("a._1fQZEK") or soup.select_one("a.s1Q9rs")
         if not item:
             return _result("Flipkart", error="No results")
@@ -160,11 +168,22 @@ def search_ajio(query: str) -> Dict:
     try:
         url = f"https://www.ajio.com/search/?text={requests.utils.quote(query)}"
         if curl_requests:
-            r = curl_requests.get(url, impersonate="chrome", timeout=6)
-            html = r.text
+            html = ""
+            for _ in range(2):
+                r = curl_requests.get(url, impersonate="chrome", timeout=6)
+                html = r.text
+                if html:
+                    break
         else:
-            r = requests.get(url, headers={**HEADERS, "Referer": "https://www.ajio.com/"}, timeout=6)
-            html = r.text
+            html = ""
+            for _ in range(2):
+                r = requests.get(url, headers={**HEADERS, "Referer": "https://www.ajio.com/"}, timeout=6)
+                html = r.text
+                if html:
+                    break
+        j = _try_jsonld(html, "https://www.ajio.com", "Ajio")
+        if j:
+            return j
         soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one("div.item") or soup.select_one(".product-card") or soup.select_one("li")
         if not item:
@@ -187,11 +206,22 @@ def search_snapdeal(query: str) -> Dict:
     try:
         url = f"https://www.snapdeal.com/search?keyword={requests.utils.quote(query)}"
         if curl_requests:
-            r = curl_requests.get(url, impersonate="chrome", timeout=6)
-            html = r.text
+            html = ""
+            for _ in range(2):
+                r = curl_requests.get(url, impersonate="chrome", timeout=6)
+                html = r.text
+                if html:
+                    break
         else:
-            r = requests.get(url, headers={**HEADERS, "Referer": "https://www.snapdeal.com/"}, timeout=6)
-            html = r.text
+            html = ""
+            for _ in range(2):
+                r = requests.get(url, headers={**HEADERS, "Referer": "https://www.snapdeal.com/"}, timeout=6)
+                html = r.text
+                if html:
+                    break
+        j = _try_jsonld(html, "https://www.snapdeal.com", "Snapdeal")
+        if j:
+            return j
         soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one(".product-tuple-listing")
         if not item:
