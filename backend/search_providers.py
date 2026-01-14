@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import time
+import os
 try:
     from curl_cffi import requests as curl_requests
 except Exception:
@@ -12,6 +13,8 @@ try:
     from playwright.sync_api import sync_playwright
 except Exception:
     sync_playwright = None
+USE_IMPERSONATE = os.getenv("FORCE_IMPERSONATE", "false").lower() in ("1", "true", "yes", "on")
+ENABLE_HEADLESS = os.getenv("ENABLE_HEADLESS", "false").lower() in ("1", "true", "yes", "on")
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 HEADERS = {
     "User-Agent": UA,
@@ -94,7 +97,7 @@ def _try_jsonld(html: str, base: str, source: str) -> Optional[Dict]:
     except:
         return None
 def _headless_html(url: str, timeout_ms: int = 8000) -> Optional[str]:
-    if not sync_playwright:
+    if not ENABLE_HEADLESS or not sync_playwright:
         return None
     try:
         with sync_playwright() as p:
@@ -113,7 +116,7 @@ def search_amazon(query: str) -> Dict:
         url = f"https://www.amazon.in/s?k={requests.utils.quote(query)}"
         html = ""
         for _ in range(2):
-            if curl_requests:
+            if USE_IMPERSONATE and curl_requests:
                 r = curl_requests.get(url, impersonate="chrome", timeout=6)
                 html = r.text
             else:
@@ -191,7 +194,7 @@ def search_flipkart(query: str) -> Dict:
 def search_ajio(query: str) -> Dict:
     try:
         url = f"https://www.ajio.com/search/?text={requests.utils.quote(query)}"
-        if curl_requests:
+        if USE_IMPERSONATE and curl_requests:
             html = ""
             for _ in range(2):
                 r = curl_requests.get(url, impersonate="chrome", timeout=6)
@@ -233,7 +236,7 @@ def search_ajio(query: str) -> Dict:
 def search_snapdeal(query: str) -> Dict:
     try:
         url = f"https://www.snapdeal.com/search?keyword={requests.utils.quote(query)}"
-        if curl_requests:
+        if USE_IMPERSONATE and curl_requests:
             html = ""
             for _ in range(2):
                 r = curl_requests.get(url, impersonate="chrome", timeout=6)
@@ -279,7 +282,7 @@ def search_croma(query: str) -> Dict:
         url = f"https://www.croma.com/search/?text={requests.utils.quote(query)}"
         html = ""
         for _ in range(2):
-            if curl_requests:
+            if USE_IMPERSONATE and curl_requests:
                 r = curl_requests.get(url, impersonate="chrome", timeout=6)
                 html = r.text
             else:

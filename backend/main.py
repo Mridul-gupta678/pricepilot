@@ -8,6 +8,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import logging
 from .search_providers import search_amazon, search_flipkart, search_ajio, search_snapdeal, search_croma
+import os
 
 # Database
 from .database import init_db, save_price, get_price_history
@@ -35,6 +36,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logging.basicConfig(level=logging.INFO)
+RUNTIME_FLAGS = {
+    "FORCE_IMPERSONATE": os.getenv("FORCE_IMPERSONATE", "false"),
+    "ENABLE_HEADLESS": os.getenv("ENABLE_HEADLESS", "false"),
+}
 
 # ===================== MODELS =====================
 
@@ -172,7 +177,7 @@ def scrape_product(url: str, mock: bool = False):
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "services": ["api", "database", "scrapers"]}
+    return {"status": "healthy", "services": ["api", "database", "scrapers"], "runtime_flags": RUNTIME_FLAGS}
 def run_all_search(q: str):
     sites = [
         ("Amazon", search_amazon),
@@ -194,6 +199,18 @@ def run_all_search(q: str):
             except Exception as e:
                 results.append({"source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": str(e)})
         return results
+@app.get("/providers-health")
+def providers_health(q: str = "iphone"):
+    data = run_all_search(q)
+    status = []
+    for item in data:
+        status.append({
+            "source": item.get("source"),
+            "ok": bool(item.get("title") not in ["Unavailable", None] or item.get("price") not in ["Unavailable", None]),
+            "error": item.get("error"),
+            "url": item.get("url"),
+        })
+    return {"query": q, "flags": RUNTIME_FLAGS, "status": status}
 
 def _search_compare_core(q: str):
     key = q.lower()
