@@ -15,6 +15,7 @@ HEADERS = {
     ),
     "Accept-Language": "en-IN,en;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Connection": "keep-alive"
 }
 
@@ -51,7 +52,7 @@ def fetch_amazon_product(url: str):
         parsed = urlparse(url)
         if "amzn" in parsed.netloc:
             try:
-                redir = requests.head(url, headers={**HEADERS, "Referer": "https://www.amazon.in/"}, allow_redirects=True, timeout=10)
+                redir = requests.get(url, headers={**HEADERS, "Referer": "https://www.amazon.in/"}, allow_redirects=True, timeout=10)
                 url = redir.url or url
             except:
                 pass
