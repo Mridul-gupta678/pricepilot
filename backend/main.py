@@ -5,7 +5,8 @@ from typing import Optional, List
 from urllib.parse import urlparse
 import statistics
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import logging
 from .search_providers import search_amazon, search_flipkart, search_ajio, search_snapdeal, search_croma
 
 # Database
@@ -33,6 +34,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logging.basicConfig(level=logging.INFO)
 
 # ===================== MODELS =====================
 
@@ -167,35 +169,51 @@ def scrape_product(url: str, mock: bool = False):
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "services": ["api", "database", "scrapers"]}
-@app.post("/search-compare", response_model=SearchCompareResponse)
-def search_compare(payload: SearchPayload):
-    q = payload.name.strip()
+def run_all_search(q: str):
+    sites = [
+        ("Amazon", search_amazon),
+        ("Flipkart", search_flipkart),
+        ("Ajio", search_ajio),
+        ("Snapdeal", search_snapdeal),
+        ("Croma", search_croma),
+    ]
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        future_map = {site: ex.submit(fn, q) for site, fn in sites}
+        results = []
+        for site, fut in future_map.items():
+            try:
+                r = fut.result(timeout=6)
+                if r:
+                    results.append(r)
+            except TimeoutError:
+                results.append({"source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": "Timeout"})
+            except Exception as e:
+                results.append({"source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": str(e)})
+        return results
+
+def _search_compare_core(q: str):
     key = q.lower()
     now = time.time()
     cached = SEARCH_CACHE.get(key)
     if cached and (now - cached["ts"]) < CACHE_TTL:
-        return {"query": q, "results": cached["data"]}
-    def run_all():
-        with ThreadPoolExecutor(max_workers=5) as ex:
-            futures = [
-                ex.submit(search_amazon, q),
-                ex.submit(search_flipkart, q),
-                ex.submit(search_ajio, q),
-                ex.submit(search_snapdeal, q),
-                ex.submit(search_croma, q),
-            ]
-            results = []
-            for f in futures:
-                try:
-                    r = f.result(timeout=5)
-                    if r:
-                        results.append(r)
-                except Exception:
-                    pass
-            return results
-    data = run_all()
+        logging.info(f"cache_hit query={q} count={len(cached['data'])}")
+        return cached["data"]
+    data = run_all_search(q)
     SEARCH_CACHE[key] = {"ts": now, "data": data}
+    logging.info(f"search query={q} count={len(data)}")
     for item in data:
         if item.get("price") not in [None, "", "Unavailable", "Sold Out"]:
             save_price(item.get("url", key), item.get("title", q), str(item.get("price")))
+    return data
+
+@app.post("/search-compare", response_model=SearchCompareResponse)
+def search_compare(payload: SearchPayload):
+    q = payload.name.strip()
+    data = _search_compare_core(q)
+    return {"query": q, "results": data}
+
+@app.get("/search-compare", response_model=SearchCompareResponse)
+def search_compare_get(q: str):
+    q = q.strip()
+    data = _search_compare_core(q)
     return {"query": q, "results": data}
