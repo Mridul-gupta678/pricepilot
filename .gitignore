@@ -1,13 +1,7 @@
-# Python
 __pycache__/
 *.pyc
-venv/
-
-# Database
-*.db
-
-# Environment variables
 .env
-
-# OS files
-.DS_Store
+.venv/
+venv/
+price_history.db
+backend/config.py
