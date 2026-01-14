@@ -4,3 +4,4 @@ requests
 beautifulsoup4
 python-multipart
 curl_cffi
+playwright
