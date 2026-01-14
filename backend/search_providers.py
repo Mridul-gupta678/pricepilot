@@ -3,10 +3,15 @@ from typing import Dict, Optional
 from bs4 import BeautifulSoup
 import requests
 import json
+import time
 try:
     from curl_cffi import requests as curl_requests
 except Exception:
     curl_requests = None
+try:
+    from playwright.sync_api import sync_playwright
+except Exception:
+    sync_playwright = None
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 HEADERS = {
     "User-Agent": UA,
@@ -87,6 +92,21 @@ def _try_jsonld(html: str, base: str, source: str) -> Optional[Dict]:
                 return _result(source, title=picked.get("title"), price=picked.get("price"), image=picked.get("image"), url=link, availability="In Stock")
         return None
     except:
+        return None
+def _headless_html(url: str, timeout_ms: int = 8000) -> Optional[str]:
+    if not sync_playwright:
+        return None
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(user_agent=UA, viewport={"width": 1280, "height": 800})
+            page = context.new_page()
+            page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+            time.sleep(0.5)
+            html = page.content()
+            browser.close()
+            return html
+    except Exception:
         return None
 def search_amazon(query: str) -> Dict:
     try:
@@ -257,6 +277,11 @@ def search_croma(query: str) -> Dict:
                 break
         soup = BeautifulSoup(html, "html.parser")
         item = soup.select_one(".product-item") or soup.select_one("li.product-item")
+        if not item:
+            hhtml = _headless_html(url, timeout_ms=8000)
+            if hhtml:
+                soup = BeautifulSoup(hhtml, "html.parser")
+                item = soup.select_one(".product-item") or soup.select_one("li.product-item")
         if not item:
             return _result("Croma", error="No results or JS-rendered")
         title_el = item.select_one(".product-title") or item.find("h3")
