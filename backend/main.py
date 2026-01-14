@@ -63,7 +63,7 @@ def scrape_logic(url: str, use_mock: bool = False):
 
     domain = urlparse(url).netloc.lower()
     
-    if "amazon" in domain:
+    if "amazon" in domain or "amzn" in domain:
         result = fetch_amazon_product(url)
     elif "flipkart" in domain:
         result = fetch_flipkart_product(url)
@@ -149,6 +149,10 @@ def compare_advanced(payload: ProductPayload, mock_mode: bool = False):
         "deal_analysis": deal_analysis,
         "history": history
     }
+@app.get("/compare-advanced", response_model=ComparisonResponse)
+def compare_advanced_get(url: str, mock_mode: bool = False):
+    payload = ProductPayload(url=url)
+    return compare_advanced(payload, mock_mode=mock_mode)
 
 # ---------- UTILITIES ----------
 
