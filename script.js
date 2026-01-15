@@ -216,11 +216,18 @@ function renderComparison(items) {
     container.innerHTML = `
       <div class="section-header">
         <h3><i class="fa-solid fa-table-columns"></i> Comparison</h3>
-        <select id="sortSelect" class="select">
-          <option value="price">Sort: Price</option>
-          <option value="rating">Sort: Rating</option>
-        </select>
+        <div class="view-sort-row">
+          <select id="sortSelect" class="select">
+            <option value="price">Sort: Price</option>
+            <option value="rating">Sort: Rating</option>
+          </select>
+          <div class="view-toggle">
+            <button id="viewTable" class="view-btn active" data-view="table">Table</button>
+            <button id="viewGrid" class="view-btn" data-view="grid">Grid</button>
+          </div>
+        </div>
       </div>
+      <div id="filterBar" class="filter-bar"></div>
       <div class="table-wrapper">
         <table class="compare-table">
           <thead>
@@ -231,22 +238,76 @@ function renderComparison(items) {
           <tbody id="compareBody"></tbody>
         </table>
       </div>
+      <div id="compareGrid" class="grid-wrapper hidden"></div>
     `;
     document.querySelector("main.container").prepend(container);
   }
+  const tableWrapper = container.querySelector(".table-wrapper");
   const body = document.getElementById("compareBody");
   const sortSelect = document.getElementById("sortSelect");
+  const grid = document.getElementById("compareGrid");
+  const filterBar = document.getElementById("filterBar");
+  const viewTableBtn = document.getElementById("viewTable");
+  const viewGridBtn = document.getElementById("viewGrid");
+  const sources = Array.from(new Set(items.map(it => it.source).filter(Boolean)));
+  filterBar.innerHTML = `
+    <div class="filter-bar-inner">
+      <div class="filter-group">
+        <label for="originFilter">Source</label>
+        <select id="originFilter" class="select small-select">
+          <option value="all">All</option>
+          <option value="feed">Feed</option>
+          <option value="live">Live</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="storeFilter">Store</label>
+        <select id="storeFilter" class="select small-select">
+          <option value="">All stores</option>
+          ${sources.map(s => `<option value="${s}">${s}</option>`).join("")}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Price</label>
+        <div class="price-inputs">
+          <input id="minPriceFilter" type="number" placeholder="Min" />
+          <input id="maxPriceFilter" type="number" placeholder="Max" />
+        </div>
+      </div>
+    </div>
+  `;
+  const originFilter = document.getElementById("originFilter");
+  const storeFilter = document.getElementById("storeFilter");
+  const minPriceFilter = document.getElementById("minPriceFilter");
+  const maxPriceFilter = document.getElementById("maxPriceFilter");
+  let currentView = "table";
   const parsePrice = (p) => {
     if (!p || p === "Unavailable" || p === "Sold Out") return Infinity;
     return parseFloat(String(p).replace(/[^\d.]/g, "")) || Infinity;
   };
-  const bestIdx = items.reduce((best, cur, i, arr) => parsePrice(cur.price) < parsePrice(arr[best].price) ? i : best, 0);
   sortSelect.onchange = () => {
-    const crit = sortSelect.value;
-    const sorted = [...items].sort((a,b) => crit === 'rating' ? (Number(b.rating||0)-Number(a.rating||0)) : (parsePrice(a.price) - parsePrice(b.price)));
-    drawRows(sorted);
+    applyFiltersAndSort();
+  };
+  originFilter.onchange = () => applyFiltersAndSort();
+  storeFilter.onchange = () => applyFiltersAndSort();
+  minPriceFilter.oninput = () => applyFiltersAndSort();
+  maxPriceFilter.oninput = () => applyFiltersAndSort();
+  viewTableBtn.onclick = () => {
+    currentView = "table";
+    viewTableBtn.classList.add("active");
+    viewGridBtn.classList.remove("active");
+    tableWrapper.classList.remove("hidden");
+    grid.classList.add("hidden");
+  };
+  viewGridBtn.onclick = () => {
+    currentView = "grid";
+    viewGridBtn.classList.add("active");
+    viewTableBtn.classList.remove("active");
+    tableWrapper.classList.add("hidden");
+    grid.classList.remove("hidden");
   };
   function drawRows(list) {
+    const bestIdx = list.length ? list.reduce((best, cur, i, arr) => parsePrice(cur.price) < parsePrice(arr[best].price) ? i : best, 0) : -1;
     body.innerHTML = list.map((it, idx) => `
       <tr class="${idx===bestIdx ? 'best' : ''} ${it.origin === 'feed' ? 'feed-row' : 'live-row'}">
         <td>
@@ -264,7 +325,52 @@ function renderComparison(items) {
       </tr>
     `).join("");
   }
-  drawRows(items);
+  function drawCards(list) {
+    grid.innerHTML = list.map(it => `
+      <div class="product-card-mini ${it.origin === 'feed' ? 'feed-row' : 'live-row'}">
+        <div class="mini-img-wrapper">
+          <img src="${it.image || "https://placehold.co/200x200?text=No+Image"}" alt="${it.title || ""}" />
+        </div>
+        <div class="mini-body">
+          <div class="mini-title">${it.title || "-"}</div>
+          <div class="mini-meta">
+            <span class="mini-price">${it.price || "-"}</span>
+            <span class="mini-store">${it.source || "-"}</span>
+            <span class="origin-badge ${it.origin === 'feed' ? 'origin-feed' : 'origin-live'}">${it.origin === 'feed' ? "Feed" : "Live"}</span>
+          </div>
+          <div class="mini-footer">
+            <span class="mini-rating">${it.rating || "-"}</span>
+            ${it.url ? `<a class="btn-buy mini-buy" target="_blank" href="${it.url}">Visit store</a>` : ""}
+          </div>
+        </div>
+      </div>
+    `).join("");
+  }
+  function applyFiltersAndSort() {
+    let list = items.slice();
+    const originVal = originFilter.value;
+    const storeVal = storeFilter.value;
+    const minVal = parseFloat(minPriceFilter.value || "0") || 0;
+    const maxValRaw = maxPriceFilter.value;
+    const maxVal = maxValRaw ? parseFloat(maxValRaw) || Infinity : Infinity;
+    list = list.filter(it => {
+      if (originVal !== "all" && it.origin !== originVal) return false;
+      if (storeVal && it.source !== storeVal) return false;
+      const p = parsePrice(it.price);
+      if (p < minVal) return false;
+      if (p > maxVal) return false;
+      return true;
+    });
+    const crit = sortSelect.value;
+    const sorted = list.sort((a, b) =>
+      crit === "rating"
+        ? (Number(b.rating || 0) - Number(a.rating || 0))
+        : (parsePrice(a.price) - parsePrice(b.price))
+    );
+    drawRows(sorted);
+    drawCards(sorted);
+  }
+  applyFiltersAndSort();
 }
 function currentMode() {
   const active = elements.modeButtons().find(b => b.classList.contains("active"));
