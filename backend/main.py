@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -9,9 +9,14 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import logging
 from .search_providers import search_amazon, search_flipkart, search_ajio, search_snapdeal, search_croma
 import os
+import io
+import csv
+import json
+import xml.etree.ElementTree as ET
+import requests
 
 # Database
-from .database import init_db, save_price, get_price_history
+from .database import init_db, save_price, get_price_history, bulk_upsert_products, search_products_by_name
 
 # Scrapers
 from .amazon_api import fetch_amazon_product
@@ -60,6 +65,12 @@ class SearchCompareResponse(BaseModel):
     query: str
     results: List[dict]
 
+
+class ImportFeedRequest(BaseModel):
+    source: str
+    url: str
+    fmt: Optional[str] = None
+
 # ===================== LOGIC =====================
 
 def scrape_logic(url: str, use_mock: bool = False):
@@ -91,6 +102,132 @@ def scrape_logic(url: str, use_mock: bool = False):
         result["price"] = "Unavailable"
         
     return result
+
+def _guess_feed_format(name: Optional[str], explicit: Optional[str]) -> str:
+    if explicit:
+        return explicit.lower()
+    if not name:
+        return "json"
+    lower = name.lower()
+    if lower.endswith(".csv"):
+        return "csv"
+    if lower.endswith(".xml") or lower.endswith(".rss"):
+        return "xml"
+    return "json"
+
+
+def _parse_csv_feed(data: bytes):
+    text = data.decode("utf-8", errors="ignore")
+    buf = io.StringIO(text)
+    reader = csv.DictReader(buf)
+    return [row for row in reader]
+
+
+def _parse_json_feed(data: bytes):
+    text = data.decode("utf-8", errors="ignore")
+    obj = json.loads(text)
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, dict):
+        for key in ["products", "items", "data"]:
+            val = obj.get(key)
+            if isinstance(val, list):
+                return val
+        return [obj]
+    return []
+
+
+def _parse_xml_feed(data: bytes):
+    root = ET.fromstring(data)
+    items = []
+    candidates = []
+    for tag in ["item", "product", "offer"]:
+        candidates.extend(root.findall(".//" + tag))
+    if not candidates:
+        candidates = list(root)
+    for el in candidates:
+        row = {}
+        for child in el:
+            if child.text is not None:
+                row[child.tag] = child.text.strip()
+        if row:
+            items.append(row)
+    return items
+
+
+def _parse_feed_bytes(data: bytes, fmt: str):
+    if fmt == "csv":
+        return _parse_csv_feed(data)
+    if fmt == "xml":
+        return _parse_xml_feed(data)
+    return _parse_json_feed(data)
+
+
+def _pick_field(data: dict, keys):
+    for k in keys:
+        if k in data and data[k] not in [None, ""]:
+            return data[k]
+    return None
+
+
+def _normalize_feed_record(source: str, raw: dict):
+    external_id = _pick_field(raw, ["id", "product_id", "item_id", "sku", "offer_id"])
+    title = _pick_field(raw, ["title", "name", "product_name", "item_name"])
+    if not title:
+        return None
+    price = _pick_field(raw, ["price", "sale_price", "offer_price", "current_price", "amount"])
+    currency = _pick_field(raw, ["currency", "currency_code", "curr"])
+    url = _pick_field(raw, ["url", "link", "product_url", "item_url"])
+    image = _pick_field(raw, ["image", "image_url", "img", "image_link"])
+    category = _pick_field(raw, ["category", "category_name", "cat"])
+    brand = _pick_field(raw, ["brand", "brand_name", "manufacturer"])
+    normalized_title = DataProcessor.normalize_title(str(title))
+    price_value = None
+    if price is not None:
+        p = DataProcessor.normalize_price(price)
+        if p is not None:
+            if float(p).is_integer():
+                price_value = str(int(p))
+            else:
+                price_value = str(p)
+    return {
+        "external_id": str(external_id) if external_id is not None else None,
+        "title": normalized_title,
+        "price": price_value,
+        "currency": currency,
+        "url": url,
+        "image": image,
+        "category": category,
+        "brand": brand,
+    }
+
+
+def _feed_rows_to_results(rows):
+    results = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        price_value = row.get("price")
+        if price_value is None:
+            price_text = "Unavailable"
+        else:
+            price_text = str(price_value)
+        results.append(
+            {
+                "origin": "feed",
+                "source": row.get("source") or "Feed",
+                "title": row.get("title") or "Unavailable",
+                "price": price_text,
+                "image": row.get("image") or "",
+                "url": row.get("url") or "",
+                "rating": None,
+                "availability": "In Stock",
+                "seller": row.get("brand"),
+                "error": None,
+            }
+        )
+    return results
+
 
 # ===================== ROUTES =====================
 SEARCH_CACHE = {}
@@ -178,6 +315,63 @@ def scrape_product(url: str, mock: bool = False):
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "services": ["api", "database", "scrapers"], "runtime_flags": RUNTIME_FLAGS}
+
+
+@app.post("/admin/import-feed")
+async def import_feed(source: str = Form(...), fmt: Optional[str] = Form(None), file: UploadFile = File(...), dry_run: bool = Form(False)):
+    resolved_fmt = _guess_feed_format(file.filename, fmt)
+    content = await file.read()
+    raw_items = _parse_feed_bytes(content, resolved_fmt)
+    normalized = []
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        rec = _normalize_feed_record(source, raw)
+        if rec:
+            normalized.append(rec)
+    if dry_run:
+        imported = len(normalized)
+    else:
+        imported = bulk_upsert_products(source, normalized)
+    return {
+        "source": source,
+        "format": resolved_fmt,
+        "total": len(raw_items),
+        "imported": imported,
+        "dry_run": dry_run,
+    }
+
+
+@app.post("/admin/import-feed-from-url")
+def import_feed_from_url(payload: ImportFeedRequest, dry_run: bool = False):
+    resolved_fmt = _guess_feed_format(payload.url, payload.fmt)
+    try:
+        resp = requests.get(payload.url, timeout=30)
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch feed: {str(e)}")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="Failed to fetch feed")
+    raw_items = _parse_feed_bytes(resp.content, resolved_fmt)
+    normalized = []
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        rec = _normalize_feed_record(payload.source, raw)
+        if rec:
+            normalized.append(rec)
+    if dry_run:
+        imported = len(normalized)
+    else:
+        imported = bulk_upsert_products(payload.source, normalized)
+    return {
+        "source": payload.source,
+        "format": resolved_fmt,
+        "total": len(raw_items),
+        "imported": imported,
+        "dry_run": dry_run,
+    }
+
+
 def run_all_search(q: str):
     sites = [
         ("Amazon", search_amazon),
@@ -193,11 +387,13 @@ def run_all_search(q: str):
             try:
                 r = fut.result(timeout=6)
                 if r:
+                    if isinstance(r, dict) and "origin" not in r:
+                        r["origin"] = "live"
                     results.append(r)
             except TimeoutError:
-                results.append({"source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": "Timeout"})
+                results.append({"origin": "live", "source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": "Timeout"})
             except Exception as e:
-                results.append({"source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": str(e)})
+                results.append({"origin": "live", "source": site, "title": "Unavailable", "price": "Unavailable", "image": "", "url": "", "error": str(e)})
         return results
 @app.get("/providers-health")
 def providers_health(q: str = "iphone"):
@@ -219,13 +415,25 @@ def _search_compare_core(q: str):
     if cached and (now - cached["ts"]) < CACHE_TTL:
         logging.info(f"cache_hit query={q} count={len(cached['data'])}")
         return cached["data"]
-    data = run_all_search(q)
-    SEARCH_CACHE[key] = {"ts": now, "data": data}
-    logging.info(f"search query={q} count={len(data)}")
-    for item in data:
+    feed_rows = search_products_by_name(q, limit=10)
+    feed_results = _feed_rows_to_results(feed_rows)
+    live_results = run_all_search(q)
+    combined = []
+    seen_urls = set()
+    for item in feed_results + live_results:
+        url = item.get("url") or ""
+        key_url = url.lower()
+        if key_url:
+            if key_url in seen_urls:
+                continue
+            seen_urls.add(key_url)
+        combined.append(item)
+    SEARCH_CACHE[key] = {"ts": now, "data": combined}
+    logging.info(f"search query={q} count={len(combined)}")
+    for item in combined:
         if item.get("price") not in [None, "", "Unavailable", "Sold Out"]:
             save_price(item.get("url", key), item.get("title", q), str(item.get("price")))
-    return data
+    return combined
 
 @app.post("/search-compare", response_model=SearchCompareResponse)
 def search_compare(payload: SearchPayload):

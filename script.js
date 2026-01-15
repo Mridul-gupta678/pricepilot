@@ -248,8 +248,13 @@ function renderComparison(items) {
   };
   function drawRows(list) {
     body.innerHTML = list.map((it, idx) => `
-      <tr class="${idx===bestIdx ? 'best' : ''}">
-        <td>${it.source||'-'}</td>
+      <tr class="${idx===bestIdx ? 'best' : ''} ${it.origin === 'feed' ? 'feed-row' : 'live-row'}">
+        <td>
+          <div class="store-cell">
+            <span class="store-name">${it.source||'-'}</span>
+            ${it.origin === 'feed' ? "<span class='origin-badge origin-feed'>Feed</span>" : "<span class='origin-badge origin-live'>Live</span>"}
+          </div>
+        </td>
         <td>${it.title||'-'}</td>
         <td>${it.price||'-'}</td>
         <td>${it.rating||'-'}</td>
