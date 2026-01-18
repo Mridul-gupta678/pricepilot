@@ -1,0 +1,172 @@
+PricePilot: A Multi-Store Price Comparison and Price Tracking Platform for E-Commerce
+
+Mridul Gupta
+Department of Computer Science and Engineering, [Your Institute Name]
+mridul@example.com
+
+Aahona Mukhopadhyay
+Department of Computer Science and Engineering, [Your Institute Name]
+aahona@example.com
+
+Krishna Kumar
+Department of Computer Science and Engineering, [Your Institute Name]
+krishna@example.com
+
+Abstract—Online shoppers often struggle to decide whether the price shown on an e-commerce website is fair, whether it has recently changed, and whether another store offers a better deal. PricePilot is a web-based platform that addresses this problem by combining multi-store price comparison with historical price tracking and visual analytics. The system consists of a static web frontend and a FastAPI-based backend deployed on GitHub Pages and Render, respectively. The backend integrates multiple search providers and scrapers for popular Indian e-commerce sites (Amazon, Flipkart, Ajio, Snapdeal, and Croma), normalizes heterogeneous data, stores it in an SQLite database, and exposes RESTful endpoints for comparison and history retrieval. The frontend offers a modern, responsive user interface with Google Shopping–style comparison cards, filters, and Chart.js-based price history visualization. This paper presents the design, architecture, and methodology of PricePilot, and explains how its approach can improve decision-making compared to manual comparison and single-store trackers.
+
+Index Terms— Price comparison, e-commerce, FastAPI, web scraping, price history, data visualization.
+
+I. INTRODUCTION
+
+Online retail platforms have made it simple to discover and purchase products, but they have also introduced new complexity for consumers. The same product is often sold across multiple e-commerce sites at different prices, with frequent promotions and dynamic pricing strategies. Customers must manually visit each site, compare prices, and guess whether the current price is high or low relative to past trends.
+
+Existing tools typically focus on either price tracking for a single store or basic price comparison without historical context. In contrast, an integrated system that combines multi-store comparison with historical analytics can provide more actionable insights: users can see whether a deal is genuinely good, identify patterns such as frequent discounts, and decide when and where to buy.
+
+Researchers and practitioners have explored several directions in this space, including single-site price trackers, coupon and deal-aggregation services, and large-scale comparison engines such as Google Shopping. Academic work on dynamic pricing and e-commerce analytics has also studied how price signals evolve over time and how users respond to discounts. However, many of these solutions either require browser extensions, focus on a single retailer, or do not expose the underlying historical data to end users in an interpretable way.
+
+PricePilot is designed to add value over these approaches by combining multi-store comparison, persistent price history storage, and visual analytics within a single system. The main contributions of this work are:
+
+1) A unified backend that integrates multiple Indian e-commerce platforms through search providers and scrapers, normalizing heterogeneous outputs into a common schema.
+2) A historical price tracking pipeline that stores observations in a relational database and computes derived metrics such as average price and savings.
+3) A modern web interface that presents comparison results using a Google Shopping–style grid with filters alongside interactive price history charts.
+4) A deployment-ready architecture based on GitHub Pages and Render that reflects realistic constraints for student and prototype projects.
+
+The novelty of PricePilot lies in its focus on combining multi-store comparison and history tracking in a lightweight yet production-aware stack. Instead of building a monolithic crawler or a purely academic prototype, the system emphasizes real user workflows, error-tolerant scraping, and a clean separation between frontend and backend services.
+
+The rest of this paper is organized as follows. Section II reviews related work on price tracking and e-commerce comparison tools. Section III presents the methodology and system architecture of PricePilot. Section IV describes the experimental setup used to evaluate the system. Section V discusses results, including a comparison with related approaches. Section VI outlines limitations and future work, and Section VII concludes the paper.
+
+II. LITERATURE SURVEY
+
+The problem of helping users make informed purchase decisions has been studied from several angles. Early commercial tools focused on price comparison across online stores, allowing users to query a product name and obtain a ranked list of offers from different retailers. Many of these systems, including well-known comparison engines, rely on structured feeds or partner APIs rather than scraping and usually do not expose detailed historical trends to end users.
+
+Another category of tools consists of browser extensions and dedicated price trackers for individual sites. These systems record price snapshots when a user visits a product page and may generate alerts when the price drops below a user-defined threshold. While convenient, single-store trackers do not provide a holistic view across platforms and can fragment a user’s shopping history.
+
+Academic research has examined dynamic pricing, demand estimation, and user response to discounts in e-commerce settings. Several works propose models to detect unusual price movements or to predict future prices based on historical series. These approaches typically assume access to large, clean datasets collected over long periods and focus on analytical performance rather than deployable user-facing systems.
+
+In contrast to these lines of work, PricePilot aims to provide a practical platform that users can access from a browser without installing extensions. It combines ideas from comparison engines and price trackers but maintains its own lightweight data collection process and focuses on presenting information in an interpretable format suitable for everyday decision-making.
+
+III. METHODOLOGY
+
+PricePilot follows a decoupled frontend–backend architecture similar to many modern web systems. At a high level, the methodology is to capture prices from multiple sources, normalize and store them in a central datastore, compute summary statistics, and present the results through a responsive web interface. By issuing concurrent search or scraping requests and caching results for popular queries, the system reduces latency and avoids duplicated work compared to naïve manual comparison.
+
+From a theoretical standpoint, this approach can outperform manual browsing and single-store trackers along two dimensions. First, concurrent multi-store queries reduce the time required to gather offers compared to sequential human visits. Second, aggregating historical prices across visits enables the computation of statistics such as averages and savings, which are difficult for users to estimate mentally. While the system does not implement a formal learning algorithm, it leverages data aggregation and basic statistics to support better decisions.
+
+A. Frontend
+
+The frontend is defined primarily in three files: index.html, style.css, and script.js. The layout includes a hero section describing the application, a unified search bar with a mode toggle between “Product” and “Link”, a result area that displays product details and an interactive chart, a recent searches panel, and a dedicated comparison section.
+
+The user interface is designed with a dark-mode-first aesthetic and glassmorphism-inspired cards. FontAwesome icons and Google Fonts provide a modern appearance. Responsiveness is ensured so that the application remains usable on both desktop and mobile devices.
+
+JavaScript is used to manage state, handle user input, call backend APIs, update charts, and render comparison tables and cards. The frontend automatically switches its API base URL between a local backend (http://localhost:8000) and the production backend on Render.
+
+B. Backend
+
+The backend is implemented as a FastAPI application in backend/main.py. At startup, it initializes the SQLite database and configures CORS middleware to allow the frontend to communicate from GitHub Pages. The backend defines several Pydantic models for request and response validation, including structures for product payloads, comparison responses, search payloads, and feed import requests.
+
+Key responsibilities of the backend include:
+
+• Determining which provider or scraper to use based on the product URL domain.
+• Normalizing heterogeneous data from different sites into a common schema.
+• Computing deal metrics such as savings and relative score based on historical prices.
+• Caching multi-store search results to avoid repeated external requests.
+
+Scraping and search logic are encapsulated in provider modules under backend/amazon_api.py, backend/flipkart_api.py, backend/ajio_api.py, backend/snapdeal_api.py, backend/croma_api.py, and backend/search_providers.py. A MockScraper is also provided for testing and demonstration purposes.
+
+C. Database
+
+The database layer is implemented in backend/database.py using SQLite. The module defines functions to initialize tables, insert price records, retrieve historical prices, and manage catalog entries from imported feeds.
+
+Each price history record includes fields such as product URL, normalized title, price, and timestamp. Catalog tables store additional attributes like currency, image URL, category, and brand. This structure supports both live scraping and offline feed-based workflows.
+
+IV. EXPERIMENTAL SETUP AND IMPLEMENTATION
+
+The experimental section describes how PricePilot was deployed and exercised to validate its behavior. Experiments were carried out on a standard developer laptop running a recent 64-bit operating system with Python 3.11 installed. The backend service was deployed to Render using the free tier plan specified in the project configuration, while the frontend was hosted on GitHub Pages.
+
+As evaluation data, we considered representative products from major Indian e-commerce platforms, including consumer electronics such as smartphones, headphones, and laptops. For each product category, multiple URLs were collected from Amazon, Flipkart, Ajio, Snapdeal, and Croma. The system was exercised using both direct URL-based comparison and query-based search to trigger multi-store lookups.
+
+To understand behavior under repeated use, we executed several rounds of comparison queries over time, allowing the backend to record multiple price observations for the same products. This setup made it possible to inspect the resulting historical price series and verify that the deal analysis logic produced reasonable averages and savings labels.
+
+A. Multi-Store Search and Comparison
+
+For query-based comparison, the backend uses a set of search provider functions defined in backend/search_providers.py. Each provider encapsulates logic for a particular platform and returns results in a normalized dictionary format containing source name, title, price, URL, image, rating, seller, and availability.
+
+A helper function run_all_search uses a thread pool to issue concurrent requests to all providers, thereby reducing overall response time. The function also includes exception handling and timeouts to avoid blocking the entire comparison if one provider fails or becomes slow.
+
+The system includes an in-memory cache where search results are stored for a fixed time-to-live. This reduces load on external sites and speeds up repeated queries when users search for popular products.
+
+For direct URL inputs, PricePilot uses specific scraper functions that analyze the page content. When scraping fails or returns incomplete information, the backend falls back to conservative defaults, maintaining robustness rather than breaking.
+
+B. Price History Tracking and Deal Analysis
+
+Every time a valid price is obtained for a product URL, the backend stores it in the SQLite database via save_price. The DataProcessor component in backend/processing.py normalizes price strings into numeric values and cleans up title text for consistent indexing.
+
+Historical data for a given product URL can be retrieved via the /price-history endpoint or is automatically included in the /compare-advanced response. The backend computes descriptive statistics such as average price and uses them to generate deal analysis metrics, including:
+
+• A numerical deal score.
+• A human-readable label such as “Great Deal” or “No Data”.
+• Estimated savings relative to the historical average.
+
+These metrics are returned to the frontend to display savings percentages and badges.
+
+C. User Interface and Visualization
+
+The frontend uses Chart.js to visualize price history on a responsive line chart. Points represent individual recorded prices over time, and tooltips display exact values and timestamps. When no data is available, a dedicated empty-state message is shown instead of an empty chart.
+
+The comparison interface renders results in two alternative views: a traditional table and a card grid similar to Google Shopping. A filter bar allows users to restrict results based on store, data origin, and price range. Sorting options let users order results by price or rating. View toggles and filters are implemented entirely on the client side using shared filter and sort functions operating on the backend’s JSON response.
+
+Recent searches are stored in the browser using localStorage. This feature allows users to quickly revisit products they have previously explored without additional typing.
+
+V. RESULTS AND DISCUSSION
+
+A. Overall Results
+
+Qualitative evaluation indicates that PricePilot improves the transparency of pricing information for typical users. In the conducted experiments, users were able to complete the core workflow—search, compare, and inspect price history—in a few clicks. The visual design and dark-mode emphasis made prolonged use more comfortable, while responsive layout ensured support for laptops and mobile devices.
+
+From a system design perspective, the decoupled architecture simplified deployment and iteration. Frontend changes could be deployed through GitHub Pages without altering backend infrastructure, and backend updates could be rolled out on Render independently. Using SQLite for storage kept operations simple while remaining adequate for the scale of a student project or prototype.
+
+However, the system’s reliance on scraping introduces fragility: layout changes on external sites can break individual scrapers. Caching mitigates some load concerns but does not fully eliminate this risk. Future versions should move toward official APIs where available.
+
+B. Comparison with Related Work
+
+Compared to manual comparison, PricePilot reduces the effort required to inspect multiple stores, since concurrent provider queries automatically fetch offers from all supported platforms in one request. In contrast to single-store trackers and browser extensions, the system presents a unified view that combines multi-store prices and historical trends in a single interface.
+
+Unlike many commercial comparison engines that hide detailed historical data, PricePilot exposes explicit time series of prices along with derived statistics such as average price and savings. This design makes it easier for users to reason about whether a discount is genuinely significant or part of normal fluctuation. While a precise numerical improvement over existing tools depends on the chosen metric and dataset, the methodology supports more informed decisions by aggregating information that is typically scattered across multiple sites and visits.
+
+VI. LIMITATIONS AND FUTURE WORK
+
+Several limitations remain in the current version of PricePilot:
+
+1) Scraper-based integrations require frequent maintenance, and some sites actively block automated access, leading to incomplete data.
+2) The system does not yet support persistent user profiles, watchlists, or personalized alerts.
+3) Historical analysis is currently restricted to basic averages and savings; more advanced methods could provide richer insights.
+4) Unit tests focus mainly on processing utilities; full end-to-end and UI tests are limited.
+
+Planned future work includes:
+
+• Integrating official APIs from e-commerce platforms where possible.
+• Implementing user accounts, notification preferences, and wishlists.
+• Adding alerting mechanisms such as email or push notifications on price drops.
+• Exploring AI-based buying recommendations and “best time to buy” predictions based on historical trends.
+• Expanding automated testing and monitoring to increase reliability.
+
+VII. CONCLUSION
+
+PricePilot demonstrates how a relatively simple technology stack—HTML, CSS, JavaScript, FastAPI, and SQLite—can be combined to create a practical system for multi-store price comparison and price history tracking. By separating concerns between frontend and backend, employing concurrent multi-provider search, and persisting prices for historical analysis, the system helps users make more informed purchasing decisions.
+
+Beyond its immediate utility, the project illustrates important principles in modern web system design, including API-centric architecture, resilience to partial failures, and production-aware deployment using widely accessible cloud services.
+
+REFERENCES
+
+[1] FastAPI Documentation, “FastAPI framework, high performance, easy to learn, fast to code,” available: https://fastapi.tiangolo.com/
+
+[2] Chart.js Documentation, “Chart.js – Open source HTML5 Charts for your website,” available: https://www.chartjs.org/
+
+[3] M. MacNealy, Strategies for Empirical Research in Writing, Boston, MA, USA: Allyn and Bacon, 1999.
+
+ABOUT THE AUTHORS
+
+Mridul Gupta is an engineering student specializing in web and backend development. His interests include API design, cloud deployment, and data-driven applications.
+
+Aahona Mukhopadhyay is an engineering student with interests in user interface design, frontend development, and human–computer interaction.
+
+Krishna Kumar is an engineering student focusing on backend systems, databases, and scalable web architectures.

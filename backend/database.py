@@ -1,5 +1,5 @@
-1→import sqlite3
-2→from datetime import datetime
+import sqlite3
+from datetime import datetime
 
 DB_NAME = "price_history.db"
 

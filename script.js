@@ -102,19 +102,16 @@ async function handleSearch() {
     if (!response.ok) throw new Error("Failed to fetch data");
 
     const data = await response.json();
+    const product = data.product || data;
+    const viewModel = { ...product, deal_analysis: data.deal_analysis };
     
-    // Update UI with data
-    renderProductData(data, url);
+    renderProductData(viewModel, url);
+    saveToHistory(product, url);
     
-    // Save to history
-    saveToHistory(data, url);
-    
-    // Fetch History for Chart
-    // Pass the history data directly if available from the advanced endpoint
     if (data.history) {
-        renderChart(data.history);
+      renderChart(data.history);
     } else {
-        fetchPriceHistory(url);
+      fetchPriceHistory(url);
     }
 
     elements.loading.classList.add("hidden");
@@ -391,11 +388,11 @@ function unifiedSearchGo() {
   const val = elements.unified.value.trim();
   if (!val) { showToast("Please enter a query", "error"); return; }
   const looksLink = /^https?:\/\//i.test(val);
-  const mode = currentMode();
-  if (mode === "product" && !looksLink) {
-    handleSearchCompare();
-  } else {
+  elements.suggestions.classList.add("hidden");
+  if (looksLink) {
     handleSearch();
+  } else {
+    handleSearchCompare();
   }
 }
 function updateSourceBadge(url) {
@@ -404,6 +401,8 @@ function updateSourceBadge(url) {
   else if (url.includes("flipkart")) source = "Flipkart";
   else if (url.includes("ajio")) source = "Ajio";
   else if (url.includes("snapdeal")) source = "Snapdeal";
+  else if (url.includes("croma")) source = "Croma";
+  else if (url.includes("myntra")) source = "Myntra";
   
   elements.sourceBadge.textContent = source;
 }

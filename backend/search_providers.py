@@ -324,3 +324,45 @@ def search_croma(query: str) -> Dict:
         return dom_res
     except Exception as e:
         return _result("Croma", error=str(e))
+
+
+def search_myntra(query: str) -> Dict:
+    try:
+        term = requests.utils.quote(query)
+        url = f"https://www.myntra.com/all?rawQuery={term}&p=1"
+        html = ""
+        for _ in range(2):
+            if USE_IMPERSONATE and curl_requests:
+                r = curl_requests.get(url, impersonate="chrome", timeout=6)
+                html = r.text
+            else:
+                r = requests.get(url, headers={**HEADERS, "Referer": "https://www.myntra.com/"}, timeout=6)
+                html = r.text
+            if html:
+                break
+        soup = BeautifulSoup(html, "html.parser")
+        item = soup.select_one("li.product-base")
+        if not item:
+            return _result("Myntra", error="No results or JS-rendered")
+        brand_el = item.select_one("h3.product-brand")
+        name_el = item.select_one("h4.product-product")
+        price_el = item.select_one("span.product-discountedPrice") or item.select_one("span.product-price")
+        img_el = item.select_one("img")
+        link_el = item.select_one("a")
+        title = None
+        if brand_el and name_el:
+            title = f"{brand_el.get_text(strip=True)} {name_el.get_text(strip=True)}"
+        elif name_el:
+            title = name_el.get_text(strip=True)
+        elif brand_el:
+            title = brand_el.get_text(strip=True)
+        return _result(
+            "Myntra",
+            title=title,
+            price=_norm_price(price_el.get_text(strip=True) if price_el else None),
+            image=img_el.get("src") if img_el and img_el.get("src") else None,
+            url=("https://www.myntra.com" + link_el.get("href")) if link_el and link_el.get("href") else None,
+            availability="In Stock",
+        )
+    except Exception as e:
+        return _result("Myntra", error=str(e))

@@ -7,13 +7,14 @@ import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import logging
-from .search_providers import search_amazon, search_flipkart, search_ajio, search_snapdeal, search_croma
+from .search_providers import search_amazon, search_flipkart, search_ajio, search_snapdeal, search_croma, search_myntra
 import os
 import io
 import csv
 import json
 import xml.etree.ElementTree as ET
 import requests
+from bs4 import BeautifulSoup
 
 # Database
 from .database import init_db, save_price, get_price_history, bulk_upsert_products, search_products_by_name
@@ -23,6 +24,7 @@ from .amazon_api import fetch_amazon_product
 from .flipkart_api import fetch_flipkart_product
 from .ajio_api import fetch_ajio_product
 from .snapdeal_api import fetch_snapdeal_product
+from .myntra_api import fetch_myntra_product
 from .scrapers.mock import MockScraper
 
 # Processing
@@ -71,6 +73,60 @@ class ImportFeedRequest(BaseModel):
     url: str
     fmt: Optional[str] = None
 
+GENERIC_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-IN,en;q=0.9",
+}
+
+
+def _generic_scrape(url: str) -> dict:
+    try:
+        resp = requests.get(url, headers=GENERIC_HEADERS, timeout=10)
+        if resp.status_code != 200:
+            return {
+                "title": "Unavailable",
+                "price": "Unavailable",
+                "image": "",
+                "source": f"Generic error: HTTP {resp.status_code}",
+            }
+        soup = BeautifulSoup(resp.text, "html.parser")
+        title = None
+        price = None
+        image = None
+        og_title = soup.find("meta", property="og:title")
+        if og_title and og_title.get("content"):
+            title = og_title["content"].strip()
+        if not title and soup.title and soup.title.string:
+            title = soup.title.string.strip()
+        price_meta = (
+            soup.find("meta", property="product:price:amount")
+            or soup.find("meta", property="og:price:amount")
+            or soup.find("meta", itemprop="price")
+        )
+        if price_meta and price_meta.get("content"):
+            price = price_meta["content"].strip()
+        og_image = soup.find("meta", property="og:image")
+        if og_image and og_image.get("content"):
+            image = og_image["content"].strip()
+        return {
+            "title": title or "Unavailable",
+            "price": price or "Unavailable",
+            "image": image or "",
+            "source": "Generic Scraper",
+        }
+    except Exception as e:
+        return {
+            "title": "Unavailable",
+            "price": "Unavailable",
+            "image": "",
+            "source": f"Generic error: {e}",
+        }
+
+
 # ===================== LOGIC =====================
 
 def scrape_logic(url: str, use_mock: bool = False):
@@ -78,7 +134,6 @@ def scrape_logic(url: str, use_mock: bool = False):
         return MockScraper().fetch_product(url)
 
     domain = urlparse(url).netloc.lower()
-    
     if "amazon" in domain or "amzn" in domain:
         result = fetch_amazon_product(url)
     elif "flipkart" in domain:
@@ -87,20 +142,14 @@ def scrape_logic(url: str, use_mock: bool = False):
         result = fetch_ajio_product(url)
     elif "snapdeal" in domain:
         result = fetch_snapdeal_product(url)
+    elif "myntra" in domain:
+        result = fetch_myntra_product(url)
     else:
-        result = {
-            "title": "Unavailable",
-            "price": "Unavailable",
-            "image": "",
-            "source": "Unsupported Store"
-        }
-    
-    # Normalize Data
+        result = _generic_scrape(url)
+
     result["title"] = DataProcessor.normalize_title(result.get("title", ""))
-    # We keep raw price string for display, but ensure it's not None
     if not result.get("price"):
         result["price"] = "Unavailable"
-        
     return result
 
 def _guess_feed_format(name: Optional[str], explicit: Optional[str]) -> str:
@@ -379,6 +428,7 @@ def run_all_search(q: str):
         ("Ajio", search_ajio),
         ("Snapdeal", search_snapdeal),
         ("Croma", search_croma),
+        ("Myntra", search_myntra),
     ]
     with ThreadPoolExecutor(max_workers=5) as ex:
         future_map = {site: ex.submit(fn, q) for site, fn in sites}
