@@ -82,46 +82,58 @@ async function handleSearch() {
     return;
   }
 
-  // Reset UI
   elements.loading.classList.remove("hidden");
   elements.resultSection.classList.add("hidden");
   
-  // Determine source for badge (optimistic)
   updateSourceBadge(url);
 
   const isDemo = elements.demoMode.checked;
   const endpoint = `${API_BASE}/compare-advanced${isDemo ? "?mock_mode=true" : ""}`;
 
   try {
+    const handleResponse = async (response, isMock) => {
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+      const data = await response.json();
+      const product = data.product || data;
+      const viewModel = { ...product, deal_analysis: data.deal_analysis };
+      renderProductData(viewModel, url);
+      saveToHistory(product, url);
+      if (data.history) {
+        renderChart(data.history);
+      } else {
+        fetchPriceHistory(url);
+      }
+      elements.loading.classList.add("hidden");
+      elements.resultSection.classList.remove("hidden");
+      elements.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (isMock) {
+        showToast("Showing demo data because live scraping failed", "success");
+      }
+    };
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
-
-    if (!response.ok) throw new Error("Failed to fetch data");
-
-    const data = await response.json();
-    const product = data.product || data;
-    const viewModel = { ...product, deal_analysis: data.deal_analysis };
-    
-    renderProductData(viewModel, url);
-    saveToHistory(product, url);
-    
-    if (data.history) {
-      renderChart(data.history);
-    } else {
-      fetchPriceHistory(url);
-    }
-
-    elements.loading.classList.add("hidden");
-    elements.resultSection.classList.remove("hidden");
-    
-    // Scroll to results
-    elements.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
-
+    await handleResponse(response, isDemo);
   } catch (error) {
     console.error(error);
+    if (!elements.demoMode.checked) {
+      try {
+        const fallbackResponse = await fetch(`${API_BASE}/compare-advanced?mock_mode=true`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        await handleResponse(fallbackResponse, true);
+        return;
+      } catch (fallbackError) {
+        console.error(fallbackError);
+      }
+    }
     elements.loading.classList.add("hidden");
     showToast("Error fetching product data. Please try again.", "error");
   }
