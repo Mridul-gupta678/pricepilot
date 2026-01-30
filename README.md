@@ -118,7 +118,7 @@ This setup allows independent deployment, easy maintenance, and clean separation
 - Provision backend service (Render) with Python runtime
 - Configure environment: `PORT` (default 8000), persistent disk for SQLite if needed
 - Enable CORS for the frontend origin (GitHub Pages domain)
-- Install runtime dependencies using `requirements.txt`
+- Install runtime dependencies using `requirements.txt`...
 
 3) Execute the deployment
 - Connect Render service to this GitHub repo and select auto-deploy
