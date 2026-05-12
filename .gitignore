@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+price_history.db
+backend/config.py

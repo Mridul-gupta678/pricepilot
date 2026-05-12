@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PricePilot — Premium Market Intelligence</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- Premium Cursor Glow -->
+  <div id="customCursor"></div>
+
+  <!-- Ambient Environment -->
+  <div class="luxury-bg"></div>
+  <div class="mesh-noise"></div>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo">
+        <div class="pilot-icon"><i class="fa-solid fa-diamond"></i></div>
+        <span>Price<strong>Pilot</strong></span>
+      </a>
+      <div id="systemClock" style="font-family:monospace; font-size:0.75rem; color:var(--primary); letter-spacing:0.15em; font-weight:700;">NODE_SYNC: OPTIMAL</div>
+    </div>
+  </nav>
+
+  <!-- Hero Command Center -->
+  <header class="hero" id="heroSection">
+    <!-- Symmetrical Node Badges -->
+    <div class="node-badge" style="top:25%; left:12%;"><div class="status"></div> AMAZON_NODE</div>
+    <div class="node-badge" style="top:25%; right:12%; animation-delay: 1s;"><div class="status"></div> FLIPKART_LIVE</div>
+    <div class="node-badge" style="top:55%; left:8%; animation-delay: 2s;"><div class="status"></div> MYNTRA_SYNC</div>
+    <div class="node-badge" style="top:55%; right:8%; animation-delay: 3s;"><div class="status"></div> AJIO_ACTIVE</div>
+
+    <h1>Strategic market <br/>intelligence <span style="color:var(--primary)">simplified.</span></h1>
+    <p>PricePilot analyzes real-time retail nodes across the digital landscape to find your optimal valuation point.</p>
+    
+    <div class="search-hub">
+      <div class="search-bar">
+        <input type="text" id="unifiedSearch" placeholder="Identify product or paste retail node URL..." autocomplete="off" />
+        <button id="searchGoBtn" class="search-btn">Analyze</button>
+      </div>
+      <div id="suggestions" class="suggest-box hidden"></div>
+    </div>
+  </header>
+
+  <!-- Professional Bento Dashboard -->
+  <main class="dashboard hidden" id="dashboard">
+    
+    <!-- Primary Product Intel -->
+    <section class="bento b-product">
+      <span class="bento-label">Node Visual</span>
+      <div class="p-img-wrap">
+        <img id="liveImage" src="" alt="Node Detail" />
+      </div>
+      <h2 id="liveTitle" style="font-family:'Outfit', sans-serif; font-size:1.4rem; font-weight:900; line-height:1.2;">Node Verification...</h2>
+      <div id="sourceTag" style="font-family:monospace; font-size:0.7rem; color:var(--primary); letter-spacing:2px; margin-top:1rem;">NODE: PENDING</div>
+    </section>
+
+    <!-- Valuation Metrics -->
+    <section class="bento" style="grid-column: span 4; grid-row: span 2;">
+      <span class="bento-label">Current Valuation</span>
+      <div class="price-pulse" style="display:flex; align-items:baseline; gap:0.5rem; margin-top:0.5rem;">
+        <span style="font-size:1.5rem; color:var(--primary); font-weight:700;">₹</span>
+        <span id="livePrice" class="val">0</span>
+      </div>
+    </section>
+
+    <section class="bento" style="grid-column: span 4; grid-row: span 2;">
+      <span class="bento-label">Market Integrity</span>
+      <div style="display:flex; align-items:center; gap:2rem; margin-top:0.5rem;">
+        <div id="scoreValue" class="score-main">0</div>
+        <div>
+          <div id="dealLabel" style="font-weight:900; font-size:1.1rem; color:var(--primary);">ANALYZING...</div>
+          <div style="font-size:0.75rem; color:var(--text-dim);">Market Stability Index</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secondary Intelligence -->
+    <section class="bento" style="grid-column: span 4; grid-row: span 3;">
+      <span class="bento-label">Node Specs</span>
+      <div id="specList" style="margin-top:0.5rem;">
+        <div style="display:flex; justify-content:space-between; padding:0.8rem 0; border-bottom:1px solid var(--border-subtle);">
+          <span style="font-size:0.85rem; color:var(--text-dim);">Type</span>
+          <span id="specType" style="font-weight:700; font-size:0.85rem;">N/A</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.8rem 0; border-bottom:1px solid var(--border-subtle);">
+          <span style="font-size:0.85rem; color:var(--text-dim);">Status</span>
+          <span style="color:var(--accent); font-weight:800; font-size:0.85rem;">CERTIFIED</span>
+        </div>
+      </div>
+      <p id="specDetail" style="font-size:0.75rem; color:var(--text-dim); margin-top:1.5rem; line-height:1.6;">Syncing technical node metadata...</p>
+    </section>
+
+    <section class="bento" style="grid-column: span 4; grid-row: span 3;">
+      <span class="bento-label">Expert Verdict</span>
+      <div style="text-align:center; margin-top:1rem;">
+        <div id="pilotScore" style="font-size:4rem; font-weight:900; color:var(--primary); line-height:1;">0.0</div>
+        <div style="font-size:0.6rem; color:var(--text-dim); margin-top:1rem; letter-spacing:3px; font-weight:800;">PILOT_SCORE</div>
+      </div>
+      <div id="expertVerdict" style="font-size:0.85rem; font-weight:900; color:var(--accent); margin-top:1.5rem; text-align:center; letter-spacing:1px;">VERIFYING...</div>
+    </section>
+
+    <section class="bento" style="grid-column: span 4; grid-row: span 3;">
+      <span class="bento-label">System Terminal</span>
+      <div id="terminalBody" class="terminal-view">
+        <div class="term-line info">SYS_READY: STANDBY_FOR_COMMAND</div>
+      </div>
+    </section>
+
+    <!-- Valuation Timeline -->
+    <section class="bento b-history">
+      <span class="bento-label">Historical Valuation Timeline</span>
+      <div class="chart-box">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Cross-Retail Terminal -->
+    <section class="bento b-compare">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3rem;">
+        <h3 style="font-family:'Outfit', sans-serif; font-size:1.8rem; font-weight:900;">Retail Analysis Terminal</h3>
+        <div style="display:flex; gap:1.5rem; align-items:center;">
+          <div style="display:flex; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:100px; padding:0.2rem 1.25rem;">
+            <span style="font-size:0.65rem; color:var(--primary); font-weight:900; margin-right:0.8rem;">STRIKE: ₹</span>
+            <input type="number" id="targetPriceInput" placeholder="Set price..." style="background:none; border:none; outline:none; color:white; width:90px; font-size:0.9rem; font-weight:700;" />
+          </div>
+          <button id="setAlert" style="background:var(--primary); color:#000; border:none; padding:0.8rem 1.8rem; border-radius:100px; font-weight:800; font-size:0.75rem; cursor:pointer;">SET_STRIKE</button>
+        </div>
+      </div>
+      <table class="lux-table">
+        <thead>
+          <tr><th>NODE_ID</th><th>VALUATION</th><th>STABILITY</th><th>OPERATION</th></tr>
+        </thead>
+        <tbody id="compareBody"></tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- Monitored Nodes (Watchlist) -->
+  <section id="watchlistSection" class="dashboard hidden" style="padding-top:1rem; padding-bottom:4rem;">
+    <div style="grid-column: span 12; display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:2rem;">
+      <div>
+        <h3 style="font-family:'Outfit', sans-serif; font-size:2.4rem; font-weight:900; letter-spacing:-0.03em;">Monitored Nodes</h3>
+        <p style="color:var(--text-dim); margin-top:0.5rem; font-size:1rem;">Synchronized surveillance of tracked market assets.</p>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.7rem; color:var(--text-dim); letter-spacing:2px; margin-bottom:0.8rem; font-weight:800;">PORTFOLIO_ROI_SAVINGS</div>
+        <div id="totalSavings" style="font-size:2.8rem; font-weight:900; color:var(--accent); letter-spacing:-0.05em;">₹0</div>
+      </div>
+    </div>
+    <div id="watchlistGrid" style="grid-column: span 12; display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:1.5rem;">
+      <!-- Populated via JS -->
+    </div>
+  </section>
+
+  <!-- Professional Loader -->
+  <div id="loadingOverlay" class="hidden">
+    <div style="width:50px; height:50px; border:2px solid var(--border-subtle); border-top-color:var(--primary); border-radius:50%; animation:spin 1s infinite linear;"></div>
+    <div style="margin-top:2rem; letter-spacing:0.4em; font-weight:800; color:var(--primary); font-size:1rem;">SYNCHRONIZING</div>
+  </div>
+
+  <!-- Live Market Pulse Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker-content" id="tickerBody">
+      <div class="ticker-item">IPHONE_15_PRO <b>₹1,14,900</b> <i class="fa-solid fa-caret-down" style="color:var(--alert)"></i> 2.4%</div>
+      <div class="ticker-item">MACBOOK_AIR_M3 <b>₹99,990</b> <i class="fa-solid fa-caret-up" style="color:var(--accent)"></i> 0.8%</div>
+      <div class="ticker-item">SONY_WH_XM5 <b>₹26,490</b> <i class="fa-solid fa-caret-down" style="color:var(--alert)"></i> 5.1%</div>
+      <div class="ticker-item">SAMSUNG_S24_ULTRA <b>₹1,09,900</b> <i class="fa-solid fa-caret-up" style="color:var(--accent)"></i> 1.2%</div>
+    </div>
+  </div>
+
+  <!-- Neural Deal Assistant -->
+  <div id="aiChat" style="position:fixed; bottom:60px; right:30px; z-index:2000;">
+    <button id="chatToggle" style="width:60px; height:60px; border-radius:50%; background:var(--primary); border:none; box-shadow:0 10px 30px var(--theme-glow); cursor:pointer; display:flex; align-items:center; justify-content:center; color:#000; font-size:1.5rem; transition:0.3s var(--ease);">
+      <i class="fa-solid fa-brain"></i>
+    </button>
+    <div id="chatBox" class="hidden" style="position:absolute; bottom:80px; right:0; width:350px; background:var(--card-bg); backdrop-filter:var(--glass); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+      <div style="background:var(--bg-slate); padding:1rem; border-bottom:1px solid var(--border-subtle); font-weight:800; font-size:0.8rem;">NEURAL_ASSISTANT</div>
+      <div id="chatHistory" style="height:300px; overflow-y:auto; padding:1rem; font-size:0.8rem; display:flex; flex-direction:column; gap:1rem;">
+        <div style="background:rgba(255,255,255,0.03); padding:0.8rem; border-radius:12px; align-self:flex-start;">Syncing node metadata... I am ready to analyze this deal.</div>
+      </div>
+      <div style="padding:1rem; display:flex; gap:0.5rem;">
+        <input type="text" id="chatInput" placeholder="Ask AI..." style="flex:1; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:100px; padding:0.6rem 1rem; color:#fff; outline:none;" />
+        <button id="chatSend" style="background:var(--primary); border:none; border-radius:50%; width:35px; height:35px; color:#000; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
