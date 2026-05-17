@@ -348,10 +348,10 @@ This project is built for educational and learning purposes.
 # 📬 Contact
 
 ### GitHub
-Add your GitHub profile link here.
+
 
 ### LinkedIn
-Add your LinkedIn profile link here.
+
 
 ---
 
