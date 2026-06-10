@@ -26,11 +26,11 @@ PricePilot is a production-oriented price comparison and tracking platform desig
 
 Unlike basic academic projects, PricePilot focuses on:
 
-- ⚡ Real-world architecture
-- 🧠 Scalable frontend–backend separation
-- 🛡️ Error-tolerant API design
-- 🎨 Modern premium UI/UX
-- ☁️ Deployment-ready engineering practices
+- ⚡ Real-world architecture.
+- 🧠 Scalable frontend–backend separation.
+- 🛡️ Error-tolerant API design.
+- 🎨 Modern premium UI/UX.
+- ☁️ Deployment-ready engineering practices.
 
 The platform allows users to track products, monitor price fluctuations, and analyze historical pricing trends before making purchasing decisions.
 
